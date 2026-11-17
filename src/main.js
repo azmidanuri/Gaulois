@@ -127,15 +127,25 @@ async function loadPlayers() {
   }
 }
 
-// HEADER
+// HEADER WITH GAULOIS AERION LOGO
 
 function header() {
   return `
     <header class="topbar">
 
       <div class="brand">
-        <div class="brand-name">${appName}</div>
-        <small>Parent & Team Portal</small>
+
+        <img
+          src="/gaulois-logo.png"
+          class="portal-logo"
+          alt="Gaulois Aerion Academy"
+        >
+
+        <div class="brand-text">
+          <div class="brand-name">${appName}</div>
+          <small>Parent & Team Portal</small>
+        </div>
+
       </div>
 
       ${button('Logout', 'logout', 'logout-btn')}
@@ -725,7 +735,7 @@ async function saveAttendance(activityId) {
   alert('Attendance saved successfully!')
 }
 
-// LOGIN SCREEN
+// LOGIN SCREEN WITH CENTRED LOGO
 
 function renderLogin() {
 
@@ -734,6 +744,12 @@ function renderLogin() {
   if (!loginType) {
     root.innerHTML = `
       <main class="login-container">
+
+        <img
+          src="/gaulois-logo.png"
+          class="login-logo"
+          alt="Gaulois Aerion Academy"
+        >
 
         <h1>Gaulois Aerion Academy</h1>
 
@@ -773,6 +789,12 @@ function renderLogin() {
 
   root.innerHTML = `
     <main class="login-container">
+
+      <img
+        src="/gaulois-logo.png"
+        class="login-logo"
+        alt="Gaulois Aerion Academy"
+      >
 
       <h1>Gaulois Aerion Academy</h1>
 
