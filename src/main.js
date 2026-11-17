@@ -20,7 +20,6 @@ let staffGroup = 'U12'
 let profileGroup = 'U10'
 let loginMode = 'parent'
 let loginAttemptMode = null
-let recoveryMode = false
 
 const esc = (v = '') =>
   String(v ?? '').replace(/[&<>"']/g, c => ({
@@ -107,9 +106,10 @@ function addPortalStyles() {
     .profile-banner{background:#172d50;color:white;border-radius:16px;padding:22px;margin-bottom:16px}
     .profile-avatar{width:76px;height:76px;border-radius:50%;background:#ffffff22;border:2px solid #ffffff66;display:flex;align-items:center;justify-content:center;font-size:30px;margin-bottom:14px}
     .profile-details{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-    .profile-detail{background:var(--card,#fff);border:1px solid var(--border,#e5e7eb);border-radius:12px;padding:14px}
+    .profile-detail{background:var(--card,#fff);border:1px solid var(--border,#e5e7eb);border-radius:12px;padding:14px;min-width:0}
     .profile-detail small{display:block;color:var(--muted,#777);margin-bottom:6px}
     .profile-detail b{font-size:15px}
+    .profile-detail input,.profile-detail select{width:100%;box-sizing:border-box}
     .placeholder-note{background:#f4f0e7;color:#66542c;padding:12px 14px;border-radius:10px;font-size:13px;margin-top:14px}
     .video-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
     .video-frame{aspect-ratio:16/9;background:linear-gradient(135deg,#172d50,#344b69);border-radius:12px;display:flex;align-items:center;justify-content:center;color:white;font-size:32px;position:relative;overflow:hidden}
@@ -137,7 +137,7 @@ function addPortalStyles() {
     .review-box h4{margin:0 0 8px}
     .review-note{white-space:pre-wrap;line-height:1.6;margin:8px 0 0}
     .review-pending{font-size:13px;color:var(--muted,#777);margin-top:10px}
-    .review-form textarea{width:100%;min-height:110px;box-sizing:border-box}
+    .review-form textarea{width:100%;min-height:110px}
     @media(max-width:480px){
       .portal-menu{gap:10px}
       .portal-menu-card{padding:15px;min-height:135px}
@@ -175,7 +175,6 @@ function shell(content = '') {
     responses = []
     reviews = []
     loginAttemptMode = null
-    recoveryMode = false
     currentTab = 'home'
     loginMode = 'parent'
     renderLogin()
@@ -334,6 +333,7 @@ function renderLogin(message = '') {
   })
 }
 
+// PASSWORD RESET
 function renderResetPassword() {
   shell(`
     <section class="login card">
@@ -384,7 +384,6 @@ function renderResetPassword() {
     user = null
     profile = null
     children = []
-    recoveryMode = false
     loginAttemptMode = null
     loginMode = 'parent'
 
@@ -464,7 +463,6 @@ async function loadSession() {
     return
   }
 
-  // Coach / Admin login accepts both staff roles.
   if (loginAttemptMode === 'staff' && !['coach', 'admin'].includes(p.role)) {
     await supabase.auth.signOut()
     user = null
@@ -475,7 +473,6 @@ async function loadSession() {
     return
   }
 
-  // Parent / Player login accepts parent accounts only.
   if (loginAttemptMode === 'parent' && p.role !== 'parent') {
     await supabase.auth.signOut()
     user = null
@@ -508,7 +505,7 @@ async function loadData() {
     const [aRes, pRes, rRes, reviewRes] = await Promise.all([
       activityQuery,
       supabase.from('players')
-        .select('id,name,age_group')
+        .select('id,name,age_group,jersey_number,position')
         .in('age_group', ['U10', 'U12'])
         .order('name'),
       supabase.from('responses').select('*'),
@@ -547,7 +544,7 @@ async function loadData() {
 
     if (ids.length) {
       const { data: p, error } = await supabase.from('players')
-        .select('id,name,age_group')
+        .select('id,name,age_group,jersey_number,position')
         .in('id', ids)
         .order('name')
 
@@ -740,6 +737,8 @@ function renderPlayerProfile(staff) {
     return
   }
 
+  const positions = ['Goalkeeper', 'Defender', 'Midfielder', 'Forward']
+
   if (staff) {
     const availablePlayers = groupPlayers(profileGroup)
 
@@ -776,7 +775,7 @@ function renderPlayerProfile(staff) {
               `).join('')}
             </select>
           </div>
-        ` : `<p class="empty">No players found in ${profileGroup}.</p>`}
+        ` : '<p class="empty">No players found in this age group.</p>'}
       </div>
 
       ${player ? `
@@ -789,17 +788,48 @@ function renderPlayerProfile(staff) {
 
         <div class="card">
           <h2>Player information</h2>
-          <div class="profile-details">
-            <div class="profile-detail"><small>Full name</small><b>${esc(player.name)}</b></div>
-            <div class="profile-detail"><small>Age group</small><b>${esc(player.age_group || 'Not set')}</b></div>
-            <div class="profile-detail"><small>Jersey number</small><b>To be updated</b></div>
-            <div class="profile-detail"><small>Position</small><b>To be updated</b></div>
-            <div class="profile-detail"><small>Date of birth</small><b>To be updated</b></div>
-            <div class="profile-detail"><small>Team</small><b>Gaulois Aerion ${esc(player.age_group || '')}</b></div>
-          </div>
-          <div class="placeholder-note">
-            Player details and photos can be added by the academy in a future update.
-          </div>
+
+          <form id="playerDetailsForm">
+            <div class="profile-details">
+              <div class="profile-detail">
+                <small>Full name</small>
+                <b>${esc(player.name)}</b>
+              </div>
+
+              <div class="profile-detail">
+                <small>Age group</small>
+                <b>${esc(player.age_group || 'Not set')}</b>
+              </div>
+
+              <div class="profile-detail">
+                <small>Jersey number</small>
+                <input
+                  id="jerseyNumber"
+                  type="number"
+                  min="1"
+                  max="99"
+                  value="${esc(player.jersey_number || '')}"
+                  placeholder="e.g. 10"
+                >
+              </div>
+
+              <div class="profile-detail">
+                <small>Position</small>
+                <select id="playerPosition">
+                  <option value="">Select position</option>
+                  ${positions.map(pos => `
+                    <option value="${pos}" ${player.position === pos ? 'selected' : ''}>
+                      ${pos}
+                    </option>
+                  `).join('')}
+                </select>
+              </div>
+            </div>
+
+            <button class="btn primary wide" type="submit" style="margin-top:18px">
+              Save player details
+            </button>
+          </form>
         </div>
       ` : ''}
     `
@@ -817,9 +847,53 @@ function renderPlayerProfile(staff) {
       renderPlayerProfile(true)
     })
 
+    document.querySelector('#playerDetailsForm')?.addEventListener('submit', async e => {
+      e.preventDefault()
+
+      const jersey_number = document.querySelector('#jerseyNumber').value.trim()
+      const position = document.querySelector('#playerPosition').value
+
+      if (jersey_number && (
+        Number(jersey_number) < 1 ||
+        Number(jersey_number) > 99
+      )) {
+        toast('Jersey number must be between 1 and 99.')
+        return
+      }
+
+      if (position && !positions.includes(position)) {
+        toast('Please select a valid position.')
+        return
+      }
+
+      const button = document.querySelector('#playerDetailsForm button[type="submit"]')
+      button.disabled = true
+      button.textContent = 'Saving...'
+
+      const { error } = await supabase
+        .from('players')
+        .update({
+          jersey_number: jersey_number || null,
+          position: position || null
+        })
+        .eq('id', player.id)
+
+      if (error) {
+        toast(error.message)
+        button.disabled = false
+        button.textContent = 'Save player details'
+        return
+      }
+
+      await loadData()
+      renderPlayerProfile(true)
+      toast('Player details saved successfully.')
+    })
+
     return
   }
 
+  // Parent view: display information only.
   const player = children.find(p => p.id === activePlayer) || children[0]
 
   panel.innerHTML = `
@@ -846,15 +920,22 @@ function renderPlayerProfile(staff) {
     <div class="card">
       <h2>Player information</h2>
       <div class="profile-details">
-        <div class="profile-detail"><small>Full name</small><b>${esc(player.name)}</b></div>
-        <div class="profile-detail"><small>Age group</small><b>${esc(player.age_group || 'Not set')}</b></div>
-        <div class="profile-detail"><small>Jersey number</small><b>To be updated</b></div>
-        <div class="profile-detail"><small>Position</small><b>To be updated</b></div>
-        <div class="profile-detail"><small>Date of birth</small><b>To be updated</b></div>
-        <div class="profile-detail"><small>Team</small><b>Gaulois Aerion ${esc(player.age_group || '')}</b></div>
-      </div>
-      <div class="placeholder-note">
-        Player details and photos can be added by the academy in a future update.
+        <div class="profile-detail">
+          <small>Full name</small>
+          <b>${esc(player.name)}</b>
+        </div>
+        <div class="profile-detail">
+          <small>Age group</small>
+          <b>${esc(player.age_group || 'Not set')}</b>
+        </div>
+        <div class="profile-detail">
+          <small>Jersey number</small>
+          <b>${player.jersey_number ? '#' + esc(player.jersey_number) : 'Not assigned'}</b>
+        </div>
+        <div class="profile-detail">
+          <small>Position</small>
+          <b>${esc(player.position || 'Not assigned')}</b>
+        </div>
       </div>
     </div>
   `
@@ -1458,7 +1539,6 @@ async function init() {
 
   supabase.auth.onAuthStateChange((event, session) => {
     if (event === 'PASSWORD_RECOVERY' && session?.user) {
-      recoveryMode = true
       user = session.user
       renderResetPassword()
       return
