@@ -259,6 +259,11 @@ h3 {
   align-items: center;
   gap: 13px;
   box-shadow: 0 2px 8px #14213a07;
+  transition: border-color 0.2s ease;
+}
+
+.player-card:hover {
+  border-color: #c69a35;
 }
 
 .player-number {
@@ -273,6 +278,12 @@ h3 {
   font-weight: 800;
   font-size: 14px;
   flex-shrink: 0;
+}
+
+/* UNASSIGNED JERSEY NUMBER */
+
+.player-number:has(:not(*)) {
+  background: #14213a;
 }
 
 .player-info {
