@@ -43,6 +43,17 @@ button {
   box-shadow: 0 3px 12px #0002;
 }
 
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.brand-text {
+  min-width: 0;
+}
+
 .brand-name {
   font-size: 17px;
   font-weight: 800;
@@ -56,6 +67,14 @@ button {
   font-size: 11px;
 }
 
+.portal-logo {
+  display: block;
+  width: 55px;
+  height: 55px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
 .logout-btn {
   background: #263750;
   color: white;
@@ -64,6 +83,7 @@ button {
   border-radius: 8px;
   font-size: 12px;
   font-weight: 600;
+  flex-shrink: 0;
 }
 
 /* GENERAL LAYOUT */
@@ -513,12 +533,21 @@ h3 {
   box-shadow: 0 8px 30px #14213a12;
 }
 
+.login-logo {
+  display: block;
+  width: 155px;
+  height: 155px;
+  object-fit: contain;
+  margin: 0 auto 18px;
+}
+
 .login-container h1 {
   color: #14213a;
   font-size: 25px;
   font-weight: 800;
   line-height: 1.2;
   text-align: center;
+  margin-top: 5px;
 }
 
 .login-container h2 {
@@ -655,6 +684,35 @@ h3 {
     max-width: 600px;
     margin-left: auto;
     margin-right: auto;
+  }
+}
+
+@media (max-width: 600px) {
+  .topbar {
+    padding: 14px 13px;
+  }
+
+  .portal-logo {
+    width: 45px;
+    height: 45px;
+  }
+
+  .brand-name {
+    font-size: 14px;
+  }
+
+  .logout-btn {
+    padding: 8px 11px;
+  }
+
+  .login-container {
+    margin-top: 55px;
+  }
+
+  .login-logo {
+    width: 135px;
+    height: 135px;
+    margin-bottom: 15px;
   }
 }
 
