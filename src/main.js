@@ -40,15 +40,15 @@ function shell(content='') {
       <header class="top">
         <div class="brand">
           <div class="crest">GA</div>
-          <div><b>GAULOIS AERION</b><small>ACADEMY · U12 PORTAL</small></div>
+          <div><b>GAULOIS AERION</b><small>ACADEMY · PORTAL</small></div>
         </div>
         <div class="topright">
-          <span class="pill">U12 PARENT PORTAL</span>
+          <span class="pill">PARENT & PLAYER PORTAL</span>
           ${user?'<button class="btn small" id="logout">Sign out</button>':''}
         </div>
       </header>
       <main class="main">${content}</main>
-      <footer>GAULOIS AERION ACADEMY · U12 PARENT ATTENDANCE PORTAL</footer>
+      <footer>GAULOIS AERION ACADEMY · PARENT & PLAYER PORTAL</footer>
     </div>
     <div id="toast" class="toast hidden"></div>
   `
