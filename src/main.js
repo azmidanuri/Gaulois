@@ -77,6 +77,10 @@ function canEditPlayers() {
   return Boolean(profile && profile.role !== 'parent')
 }
 
+function canManageActivities() {
+  return Boolean(profile && profile.role !== 'parent')
+}
+
 function getVisiblePlayers() {
   return profile?.role === 'parent'
     ? linkedPlayers
@@ -127,7 +131,7 @@ async function loadPlayers() {
   }
 }
 
-// HEADER WITH GAULOIS AERION LOGO
+// HEADER
 
 function header() {
   return `
@@ -564,11 +568,19 @@ async function attendancePage() {
   const roster = getVisiblePlayers()
   const ids = roster.map(p => p.id)
 
-  const { data: activities, error } = await supabase
+  let activityQuery = supabase
     .from('activities')
     .select('*')
-    .eq('is_published', true)
     .order('activity_date', { ascending: true })
+
+  // Parents only see published activities.
+  // Staff can see published and unpublished activities.
+
+  if (!canManageActivities()) {
+    activityQuery = activityQuery.eq('is_published', true)
+  }
+
+  const { data: activities, error } = await activityQuery
 
   if (error) throw error
 
@@ -592,26 +604,127 @@ async function attendancePage() {
 
       ${button('← Back to Home', 'home', 'back-btn')}
 
-      <h2>Attendance</h2>
-      <p class="muted">Training and match availability</p>
+      <div class="page-heading">
+        <h2>Attendance</h2>
+        <p class="muted">Training and match availability</p>
+      </div>
+
+      ${canManageActivities() ? `
+
+        <section class="activity-card">
+
+          <h3>➕ Create New Activity</h3>
+
+          <p class="muted">
+            Create a training session or match for your players.
+          </p>
+
+          <form id="create-activity-form">
+
+            <label for="activity-type">Activity Type</label>
+
+            <select id="activity-type" required>
+              <option value="training">Training</option>
+              <option value="match">Match</option>
+            </select>
+
+            <label for="activity-title">Activity Title</label>
+
+            <input
+              id="activity-title"
+              type="text"
+              placeholder="e.g. U12 Training or U12 vs Opponent"
+              required
+            >
+
+            <label for="activity-date">Date</label>
+
+            <input
+              id="activity-date"
+              type="date"
+              required
+            >
+
+            <label for="activity-time">Start Time</label>
+
+            <input
+              id="activity-time"
+              type="time"
+              required
+            >
+
+            <label for="activity-venue">Venue</label>
+
+            <input
+              id="activity-venue"
+              type="text"
+              placeholder="Enter venue"
+              required
+            >
+
+            <label class="publish-option">
+
+              <input
+                id="activity-published"
+                type="checkbox"
+                checked
+              >
+
+              Publish to parents immediately
+
+            </label>
+
+            <button
+              type="submit"
+              class="primary-btn"
+              id="create-activity-btn"
+            >
+              Create Activity
+            </button>
+
+          </form>
+
+        </section>
+
+      ` : ''}
+
+      <div class="section-heading">
+        <h3>${canManageActivities() ? 'All Activities' : 'Upcoming Activities'}</h3>
+      </div>
 
       ${(activities || []).map(activity => `
+
         <article class="activity-card">
 
-          <h3>${escapeHTML(activity.title)}</h3>
+          <div class="activity-heading">
 
-          <p>${escapeHTML(activity.activity_type || '')}</p>
-          <p>${escapeHTML(activity.activity_date || '')}</p>
-          <p>${escapeHTML(activity.start_time || '')}</p>
-          <p>${escapeHTML(activity.venue || '')}</p>
+            <div>
+              <h3>${escapeHTML(activity.title)}</h3>
+
+              <span class="team-badge">
+                ${escapeHTML(activity.activity_type || 'Activity')}
+              </span>
+            </div>
+
+            ${canManageActivities() && !activity.is_published ? `
+              <span class="muted">Draft</span>
+            ` : ''}
+
+          </div>
+
+          <p>📅 ${escapeHTML(activity.activity_date || '')}</p>
+          <p>🕒 ${escapeHTML(activity.start_time || '')}</p>
+          <p>📍 ${escapeHTML(activity.venue || '')}</p>
 
           ${roster.map(player => {
+
             const response = responses.find(r =>
-              r.player_id === player.id &&
-              r.activity_id === activity.id
+              String(r.player_id) === String(player.id) &&
+              String(r.activity_id) === String(activity.id)
             )
 
             return `
+
               <div class="attendance-row">
 
                 <strong>${escapeHTML(player.name)}</strong>
@@ -621,20 +734,28 @@ async function attendancePage() {
                   data-activity="${activity.id}"
                   class="attendance-select"
                 >
-                  <option value="unsure"
-                    ${!response || response.answer === 'unsure' ? 'selected' : ''}>
+
+                  <option
+                    value="unsure"
+                    ${!response || response.answer === 'unsure' ? 'selected' : ''}
+                  >
                     Unsure
                   </option>
 
-                  <option value="yes"
-                    ${response?.answer === 'yes' ? 'selected' : ''}>
+                  <option
+                    value="yes"
+                    ${response?.answer === 'yes' ? 'selected' : ''}
+                  >
                     Yes
                   </option>
 
-                  <option value="no"
-                    ${response?.answer === 'no' ? 'selected' : ''}>
+                  <option
+                    value="no"
+                    ${response?.answer === 'no' ? 'selected' : ''}
+                  >
                     No
                   </option>
+
                 </select>
 
               </div>
@@ -646,6 +767,7 @@ async function attendancePage() {
                 placeholder="Absence explanation (optional)"
                 value="${escapeHTML(response?.absence_reason || '')}"
               >
+
             `
           }).join('')}
 
@@ -656,10 +778,121 @@ async function attendancePage() {
           )}
 
         </article>
-      `).join('') || '<p>No published activities yet.</p>'}
+
+      `).join('') || `
+
+        <div class="empty-state">
+          No activities available yet.
+        </div>
+
+      `}
 
     </main>
   `
+}
+
+// CREATE ACTIVITY
+
+async function createActivity(event) {
+  event.preventDefault()
+
+  if (!canManageActivities()) {
+    alert('Staff access required.')
+    return
+  }
+
+  const title = document.querySelector('#activity-title').value.trim()
+  const type = document.querySelector('#activity-type').value
+  const date = document.querySelector('#activity-date').value
+  const time = document.querySelector('#activity-time').value
+  const venue = document.querySelector('#activity-venue').value.trim()
+  const published = document.querySelector('#activity-published').checked
+
+  if (!title || !date || !time || !venue) {
+    alert('Please complete all activity details.')
+    return
+  }
+
+  if (!['training', 'match'].includes(type)) {
+    alert('Please select a valid activity type.')
+    return
+  }
+
+  const createButton = document.querySelector('#create-activity-btn')
+
+  if (createButton) {
+    createButton.disabled = true
+    createButton.textContent = 'Creating...'
+  }
+
+  const { error } = await supabase
+    .from('activities')
+    .insert({
+      title: title,
+      activity_type: type,
+      activity_date: date,
+      start_time: time,
+      venue: venue,
+      is_published: published
+    })
+
+  if (error) {
+    alert('Unable to create activity: ' + error.message)
+
+    if (createButton) {
+      createButton.disabled = false
+      createButton.textContent = 'Create Activity'
+    }
+
+    return
+  }
+
+  alert(
+    published
+      ? 'Activity created and published successfully!'
+      : 'Activity saved as a draft successfully!'
+  )
+
+  await render()
+}
+
+// SAVE ATTENDANCE
+
+async function saveAttendance(activityId) {
+  if (!user) return
+
+  const selects = [...root.querySelectorAll(
+    `.attendance-select[data-activity="${activityId}"]`
+  )]
+
+  for (const select of selects) {
+    const playerId = select.dataset.player
+
+    const reason = root.querySelector(
+      `.absence-reason[data-player="${playerId}"][data-activity="${activityId}"]`
+    )?.value || ''
+
+    const payload = {
+      activity_id: activityId,
+      player_id: playerId,
+      responded_by: user.id,
+      answer: select.value,
+      absence_reason: reason
+    }
+
+    const { error } = await supabase
+      .from('responses')
+      .upsert(payload, {
+        onConflict: 'activity_id,player_id'
+      })
+
+    if (error) {
+      alert('Could not save attendance: ' + error.message)
+      return
+    }
+  }
+
+  alert('Attendance saved successfully!')
 }
 
 // PAYMENT PAGE
@@ -698,48 +931,9 @@ function videosPage() {
   `
 }
 
-// SAVE ATTENDANCE
-
-async function saveAttendance(activityId) {
-  const selects = [...root.querySelectorAll(
-    `.attendance-select[data-activity="${activityId}"]`
-  )]
-
-  for (const select of selects) {
-    const playerId = select.dataset.player
-
-    const reason = root.querySelector(
-      `.absence-reason[data-player="${playerId}"][data-activity="${activityId}"]`
-    )?.value || ''
-
-    const payload = {
-      activity_id: activityId,
-      player_id: playerId,
-      responded_by: user.id,
-      answer: select.value,
-      absence_reason: reason
-    }
-
-    const { error } = await supabase
-      .from('responses')
-      .upsert(payload, {
-        onConflict: 'activity_id,player_id'
-      })
-
-    if (error) {
-      alert('Could not save attendance: ' + error.message)
-      return
-    }
-  }
-
-  alert('Attendance saved successfully!')
-}
-
-// LOGIN SCREEN WITH CENTRED LOGO
+// LOGIN SCREEN
 
 function renderLogin() {
-
-  // FIRST SCREEN: SELECT LOGIN TYPE
 
   if (!loginType) {
     root.innerHTML = `
@@ -784,8 +978,6 @@ function renderLogin() {
 
     return
   }
-
-  // SECOND SCREEN: LOGIN FORM
 
   root.innerHTML = `
     <main class="login-container">
@@ -1032,9 +1224,18 @@ root.addEventListener('click', async event => {
 
 })
 
-// LOGIN FORM HANDLER
+// LOGIN AND CREATE ACTIVITY FORM HANDLER
 
 root.addEventListener('submit', async event => {
+
+  // CREATE ACTIVITY
+
+  if (event.target.id === 'create-activity-form') {
+    await createActivity(event)
+    return
+  }
+
+  // LOGIN
 
   if (event.target.id !== 'login-form') return
 
