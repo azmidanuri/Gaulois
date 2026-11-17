@@ -15,33 +15,57 @@ let responses = []
 let activePlayer = null
 let currentTab = 'home'
 let parentSubTab = 'activities'
+let staffGroup = 'U12'
 let recoveryMode = false
 
-const esc = (v='') => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))
+const esc = (v = '') =>
+  String(v ?? '').replace(/[&<>"']/g, c => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  }[c]))
 
-const dateLabel = d => d ? new Date(`${d}T12:00:00`).toLocaleDateString('en-SG',{weekday:'short',day:'numeric',month:'short',year:'numeric'}) : 'Date to be confirmed'
+const dateLabel = d =>
+  d
+    ? new Date(`${d}T12:00:00`).toLocaleDateString('en-SG', {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric'
+      })
+    : 'Date to be confirmed'
 
 const toast = msg => {
   const el = document.querySelector('#toast')
-  if(el){
-    el.textContent=msg
+  if (el) {
+    el.textContent = msg
     el.classList.remove('hidden')
-    setTimeout(()=>el.classList.add('hidden'),2600)
+    setTimeout(() => el.classList.add('hidden'), 2600)
   }
 }
 
-const isStaff = () => ['admin','coach'].includes(profile?.role)
+const isStaff = () => ['admin', 'coach'].includes(profile?.role)
 
 const responseFor = (activityId, playerId) =>
-  responses.find(r=>r.activity_id===activityId && r.player_id===playerId)
+  responses.find(r =>
+    r.activity_id === activityId &&
+    r.player_id === playerId
+  )
 
-// EXTRA STYLING FOR THE NEW PARENT PORTAL
-function addPortalStyles(){
-  if(document.querySelector('#portalStyles'))return
+const groupPlayers = group =>
+  children.filter(p => p.age_group === group)
 
-  const style=document.createElement('style')
-  style.id='portalStyles'
-  style.textContent=`
+const groupActivities = group =>
+  activities.filter(a => (a.age_group || 'U12') === group)
+
+function addPortalStyles() {
+  if (document.querySelector('#portalStyles')) return
+
+  const style = document.createElement('style')
+  style.id = 'portalStyles'
+  style.textContent = `
     .portal-welcome{margin-bottom:22px}
     .portal-menu{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:20px 0}
     .portal-menu-card{background:var(--card,#fff);border:1px solid var(--border,#e5e7eb);border-radius:16px;padding:20px;text-align:left;cursor:pointer;color:inherit;min-height:145px;transition:transform .15s,border-color .15s}
@@ -68,6 +92,12 @@ function addPortalStyles(){
     .subtabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
     .subtabs button{border:1px solid var(--border,#ddd);background:transparent;border-radius:20px;padding:9px 15px;cursor:pointer}
     .subtabs button.active{background:#172d50;color:white;border-color:#172d50}
+    .group-switch{display:flex;gap:8px;margin:12px 0 18px}
+    .group-switch button{border:1px solid var(--border,#ddd);background:transparent;border-radius:22px;padding:10px 20px;cursor:pointer}
+    .group-switch button.active{background:#172d50;color:white;border-color:#172d50}
+    .roster-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+    .roster-player{padding:12px;border:1px solid var(--border,#ddd);border-radius:10px}
+    .staff-section{margin-top:18px}
     @media(max-width:480px){
       .portal-menu{gap:10px}
       .portal-menu-card{padding:15px;min-height:135px}
@@ -77,7 +107,7 @@ function addPortalStyles(){
   document.head.appendChild(style)
 }
 
-function shell(content='') {
+function shell(content = '') {
   root.innerHTML = `
     <div class="shell">
       <header class="top">
@@ -86,8 +116,8 @@ function shell(content='') {
           <div><b>GAULOIS AERION</b><small>ACADEMY · PORTAL</small></div>
         </div>
         <div class="topright">
-          <span class="pill">PARENT & PLAYER PORTAL</span>
-          ${user?'<button class="btn small" id="logout">Sign out</button>':''}
+          <span class="pill">ACADEMY PORTAL</span>
+          ${user ? '<button class="btn small" id="logout">Sign out</button>' : ''}
         </div>
       </header>
       <main class="main">${content}</main>
@@ -96,39 +126,37 @@ function shell(content='') {
     <div id="toast" class="toast hidden"></div>
   `
 
-  document.querySelector('#logout')?.addEventListener('click', async()=>{
+  document.querySelector('#logout')?.addEventListener('click', async () => {
     await supabase.auth.signOut()
-    user=null
-    profile=null
-    children=[]
-    activities=[]
-    responses=[]
-    recoveryMode=false
-    currentTab='home'
+    user = null
+    profile = null
+    children = []
+    activities = []
+    responses = []
+    recoveryMode = false
+    currentTab = 'home'
     renderLogin()
   })
 }
 
-function renderLogin(message='') {
+function renderLogin(message = '') {
   shell(`
     <section class="login card">
       <div class="eyebrow">Welcome to the academy</div>
       <h1>Parent/Player portal</h1>
       <p class="sub">Sign in to access your player profile.</p>
 
-      ${message?`<div class="notice">${esc(message)}</div>`:''}
+      ${message ? `<div class="notice">${esc(message)}</div>` : ''}
 
       <form id="loginForm">
         <div class="field">
           <label>Email address</label>
           <input id="email" type="email" autocomplete="email" required placeholder="you@example.com">
         </div>
-
         <div class="field">
           <label>Password</label>
           <input id="password" type="password" autocomplete="current-password" required placeholder="Your password">
         </div>
-
         <button class="btn primary wide" type="submit">Sign in</button>
       </form>
 
@@ -140,7 +168,7 @@ function renderLogin(message='') {
 
       <details>
         <summary>First time here? Create a parent account</summary>
-        <p class="muted smalltext">Use the email address provided to the academy. After creating an account, the academy must link it to your child before attendance can be submitted.</p>
+        <p class="muted smalltext">Use the email address provided to the academy. The academy must link your account to your child before attendance can be submitted.</p>
 
         <form id="signupForm">
           <div class="field">
@@ -161,32 +189,32 @@ function renderLogin(message='') {
     </section>
   `)
 
-  document.querySelector('#loginForm').addEventListener('submit', async e=>{
+  document.querySelector('#loginForm').addEventListener('submit', async e => {
     e.preventDefault()
 
-    const email=document.querySelector('#email').value.trim()
-    const password=document.querySelector('#password').value
+    const email = document.querySelector('#email').value.trim()
+    const password = document.querySelector('#password').value
 
-    const {error}=await supabase.auth.signInWithPassword({email,password})
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
 
-    if(error)return renderLogin(error.message)
+    if (error) return renderLogin(error.message)
 
     await loadSession()
   })
 
-  document.querySelector('#forgotPassword').addEventListener('click', async()=>{
-    const email=document.querySelector('#email').value.trim()
+  document.querySelector('#forgotPassword').addEventListener('click', async () => {
+    const email = document.querySelector('#email').value.trim()
 
-    if(!email){
+    if (!email) {
       toast('Enter your email address first')
       return
     }
 
-    const {error}=await supabase.auth.resetPasswordForEmail(email,{
-      redirectTo:window.location.origin
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin
     })
 
-    if(error){
+    if (error) {
       toast(error.message)
       return
     }
@@ -194,40 +222,39 @@ function renderLogin(message='') {
     toast('Password reset email sent. Check your inbox.')
   })
 
-  document.querySelector('#signupForm').addEventListener('submit', async e=>{
+  document.querySelector('#signupForm').addEventListener('submit', async e => {
     e.preventDefault()
 
-    const full_name=document.querySelector('#fullName').value.trim()
-    const email=document.querySelector('#newEmail').value.trim()
-    const password=document.querySelector('#newPassword').value
+    const full_name = document.querySelector('#fullName').value.trim()
+    const email = document.querySelector('#newEmail').value.trim()
+    const password = document.querySelector('#newPassword').value
 
-    const {data,error}=await supabase.auth.signUp({email,password})
+    const { data, error } = await supabase.auth.signUp({ email, password })
 
-    if(error)return toast(error.message)
+    if (error) return toast(error.message)
 
-    if(data.user){
-      if(data.session){
-        const {error:profileError}=await supabase.from('profiles').insert({
-          id:data.user.id,
+    if (data.user) {
+      if (data.session) {
+        const { error: profileError } = await supabase.from('profiles').insert({
+          id: data.user.id,
           full_name,
-          role:'parent'
+          role: 'parent'
         })
 
-        if(profileError){
-          toast('Account created, but profile setup needs help from the academy: '+profileError.message)
+        if (profileError) {
+          toast('Account created, but profile setup needs help from the academy: ' + profileError.message)
           return
         }
 
         await loadSession()
-      }else{
+      } else {
         renderLogin('Account created. Check your email to confirm it, then sign in.')
       }
     }
   })
 }
 
-// PASSWORD RESET SCREEN
-function renderResetPassword(){
+function renderResetPassword() {
   shell(`
     <section class="login card">
       <div class="eyebrow">Account recovery</div>
@@ -239,78 +266,76 @@ function renderResetPassword(){
           <label>New password</label>
           <input id="resetNewPassword" type="password" minlength="6" required autocomplete="new-password">
         </div>
-
         <div class="field">
           <label>Confirm new password</label>
           <input id="resetConfirmPassword" type="password" minlength="6" required autocomplete="new-password">
         </div>
-
         <button class="btn primary wide" type="submit">Save new password</button>
       </form>
     </section>
   `)
 
-  document.querySelector('#resetForm').addEventListener('submit',async e=>{
+  document.querySelector('#resetForm').addEventListener('submit', async e => {
     e.preventDefault()
 
-    const password=document.querySelector('#resetNewPassword').value
-    const confirm=document.querySelector('#resetConfirmPassword').value
+    const password = document.querySelector('#resetNewPassword').value
+    const confirm = document.querySelector('#resetConfirmPassword').value
 
-    if(password!==confirm){
+    if (password !== confirm) {
       toast('Passwords do not match')
       return
     }
 
-    const button=document.querySelector('#resetForm button[type="submit"]')
-    button.disabled=true
-    button.textContent='Updating password...'
+    const button = document.querySelector('#resetForm button[type="submit"]')
+    button.disabled = true
+    button.textContent = 'Updating password...'
 
-    const {error}=await supabase.auth.updateUser({password})
+    const { error } = await supabase.auth.updateUser({ password })
 
-    if(error){
+    if (error) {
       toast(error.message)
-      button.disabled=false
-      button.textContent='Save new password'
+      button.disabled = false
+      button.textContent = 'Save new password'
       return
     }
 
     await supabase.auth.signOut()
 
-    user=null
-    profile=null
-    children=[]
-    recoveryMode=false
+    user = null
+    profile = null
+    children = []
+    recoveryMode = false
 
     renderLogin('Password updated successfully. Please sign in with your new password.')
   })
 }
 
 async function loadSession() {
-  const {data:{user:current},error:userError}=await supabase.auth.getUser()
+  const { data: { user: current }, error: userError } = await supabase.auth.getUser()
 
-  if(userError){
+  if (userError) {
     renderLogin(userError.message)
     return
   }
 
-  user=current
+  user = current
 
-  if(!user){
+  if (!user) {
     renderLogin()
     return
   }
 
-  const {data:p,error}=await supabase.from('profiles')
+  const { data: p, error } = await supabase.from('profiles')
     .select('id,full_name,role')
-    .eq('id',user.id)
+    .eq('id', user.id)
     .maybeSingle()
 
-  if(error){
+  if (error) {
     renderLogin(error.message)
     return
   }
 
-  if(!p){
+  if (!p) {
     shell(`
       <section class="login card">
         <div class="eyebrow">Complete your account</div>
@@ -326,16 +351,16 @@ async function loadSession() {
       </section>
     `)
 
-    document.querySelector('#profileForm').addEventListener('submit',async e=>{
+    document.querySelector('#profileForm').addEventListener('submit', async e => {
       e.preventDefault()
 
-      const {error:insertError}=await supabase.from('profiles').insert({
-        id:user.id,
-        full_name:document.querySelector('#profileName').value.trim(),
-        role:'parent'
+      const { error: insertError } = await supabase.from('profiles').insert({
+        id: user.id,
+        full_name: document.querySelector('#profileName').value.trim(),
+        role: 'parent'
       })
 
-      if(insertError){
+      if (insertError) {
         toast(insertError.message)
         return
       }
@@ -346,143 +371,89 @@ async function loadSession() {
     return
   }
 
-  profile=p
-  currentTab=isStaff()?'overview':'home'
+  profile = p
+  currentTab = 'home'
 
-  try{
+  try {
     await loadData()
     renderApp()
-  }catch(e){
+  } catch (e) {
     shell(`<div class="card"><h2>Unable to load portal</h2><p>${esc(e.message)}</p></div>`)
   }
 }
 
-async function loadData(){
-  const [aRes,linkRes]=await Promise.all([
-    supabase.from('activities').select('*').order('activity_date',{ascending:true}),
-    supabase.from('parent_players').select('player_id').eq('parent_id',user.id)
-  ])
+async function loadData() {
+  const activityQuery = supabase.from('activities')
+    .select('*')
+    .order('activity_date', { ascending: true })
 
-  if(aRes.error)throw aRes.error
-  if(linkRes.error)throw linkRes.error
-
-  activities=aRes.data||[]
-
-  const ids=(linkRes.data||[]).map(x=>x.player_id)
-
-  if(isStaff()){
-    const {data:p,error}=await supabase.from('players')
-      .select('id,name,age_group')
-      .eq('age_group','U12')
-      .order('name')
-
-    if(error)throw error
-    children=p||[]
-  }else{
-    if(ids.length){
-      const {data:p,error}=await supabase.from('players')
+  if (isStaff()) {
+    const [aRes, pRes, rRes] = await Promise.all([
+      activityQuery,
+      supabase.from('players')
         .select('id,name,age_group')
-        .in('id',ids)
+        .in('age_group', ['U10', 'U12'])
+        .order('name'),
+      supabase.from('responses').select('*')
+    ])
+
+    if (aRes.error) throw aRes.error
+    if (pRes.error) throw pRes.error
+    if (rRes.error) throw rRes.error
+
+    activities = aRes.data || []
+    children = pRes.data || []
+    responses = rRes.data || []
+  } else {
+    const [aRes, linkRes, rRes] = await Promise.all([
+      activityQuery,
+      supabase.from('parent_players')
+        .select('player_id')
+        .eq('parent_id', user.id),
+      supabase.from('responses').select('*')
+    ])
+
+    if (aRes.error) throw aRes.error
+    if (linkRes.error) throw linkRes.error
+    if (rRes.error) throw rRes.error
+
+    activities = aRes.data || []
+    responses = rRes.data || []
+
+    const ids = (linkRes.data || []).map(x => x.player_id)
+
+    if (ids.length) {
+      const { data: p, error } = await supabase.from('players')
+        .select('id,name,age_group')
+        .in('id', ids)
         .order('name')
 
-      if(error)throw error
-      children=p||[]
-    }else{
-      children=[]
+      if (error) throw error
+      children = p || []
+    } else {
+      children = []
     }
   }
 
-  activePlayer=children.some(p=>p.id===activePlayer)
-    ?activePlayer
-    :(children[0]?.id||null)
-
-  const {data:r,error}=await supabase.from('responses').select('*')
-
-  if(error)throw error
-  responses=r||[]
+  activePlayer = children.some(p => p.id === activePlayer)
+    ? activePlayer
+    : (children[0]?.id || null)
 }
 
 // MAIN APP ROUTER
-function renderApp(){
+function renderApp() {
   addPortalStyles()
 
-  if(isStaff()){
+  if (isStaff()) {
     renderStaffApp()
-  }else{
+  } else {
     renderParentApp()
   }
 }
 
-// PARENT LANDING PAGE AND MENU
-function renderParentApp(){
-  if(currentTab==='home'){
-    renderParentHome()
-    return
-  }
-
-  const pageNames={
-    profile:'Player Profile',
-    attendance:'Attendance',
-    payment:'Payment',
-    videos:'Videos'
-  }
-
-  shell(`
-    <div class="portal-back">
-      <button class="btn small" id="backHome">← Back to home</button>
-    </div>
-    <div class="hero">
-      <div>
-        <div class="eyebrow">Gaulois Aerion · U12</div>
-        <h1>${pageNames[currentTab]||'Parent Portal'}</h1>
-        <p class="sub">${esc(profile?.full_name||'Parent account')}</p>
-      </div>
-      <span class="tag">GA U12</span>
-    </div>
-    <section id="parentPage"></section>
-  `)
-
-  document.querySelector('#backHome').addEventListener('click',()=>{
-    currentTab='home'
-    renderApp()
-  })
-
-  if(currentTab==='profile')renderPlayerProfile()
-  if(currentTab==='attendance')renderAttendancePage()
-  if(currentTab==='payment')renderPaymentPage()
-  if(currentTab==='videos')renderVideosPage()
-}
-
-function renderParentHome(){
-  shell(`
-    <div class="portal-welcome">
-      <div class="eyebrow">Welcome to Gaulois Aerion</div>
-      <h1>Hello, ${esc(profile?.full_name||'Parent')}</h1>
-      <p class="sub">Your U12 family portal. What would you like to do today?</p>
-    </div>
-
-    ${!children.length?`
-      <div class="card empty">
-        <h2>No player linked yet</h2>
-        <p>Your account has been created, but the academy still needs to link it to your child. Please contact the coach.</p>
-      </div>
-    `:`
-      <div class="card">
-        <div class="sectionhead">
-          <h2>Your player${children.length>1?'s':''}</h2>
-          <span class="tag">U12</span>
-        </div>
-        ${children.map(p=>`
-          <div class="activity">
-            <b>${esc(p.name)}</b>
-            <p>${esc(p.age_group||'U12')}</p>
-          </div>
-        `).join('')}
-      </div>
-    `}
-
+function menuCards() {
+  return `
     <h2 class="portal-section-title">Portal menu</h2>
-
     <div class="portal-menu">
       <button class="portal-menu-card" data-page="profile">
         <div class="portal-menu-icon">👤</div>
@@ -493,7 +464,7 @@ function renderParentHome(){
       <button class="portal-menu-card" data-page="attendance">
         <div class="portal-menu-icon">📅</div>
         <h2>Attendance</h2>
-        <p>Confirm training and match availability</p>
+        <p>Training, matches and availability</p>
       </button>
 
       <button class="portal-menu-card" data-page="payment">
@@ -508,34 +479,140 @@ function renderParentHome(){
         <p>Match footage and player highlights</p>
       </button>
     </div>
-  `)
+  `
+}
 
-  document.querySelectorAll('[data-page]').forEach(button=>{
-    button.addEventListener('click',()=>{
-      currentTab=button.dataset.page
+function bindMenuCards() {
+  document.querySelectorAll('[data-page]').forEach(button => {
+    button.addEventListener('click', () => {
+      currentTab = button.dataset.page
       renderApp()
     })
   })
 }
 
-// PLAYER PROFILE MOCK-UP
-function renderPlayerProfile(){
-  const panel=document.querySelector('#parentPage')
-
-  if(!children.length){
-    panel.innerHTML='<div class="card empty"><h2>No player linked</h2><p>Please contact the academy.</p></div>'
+// PARENT PORTAL
+function renderParentApp() {
+  if (currentTab === 'home') {
+    renderParentHome()
     return
   }
 
-  const player=children.find(p=>p.id===activePlayer)||children[0]
+  renderPortalPage(false)
+}
 
-  panel.innerHTML=`
+function renderParentHome() {
+  const groups = [...new Set(children.map(p => p.age_group).filter(Boolean))]
+
+  shell(`
+    <div class="portal-welcome">
+      <div class="eyebrow">Welcome to Gaulois Aerion</div>
+      <h1>Hello, ${esc(profile?.full_name || 'Parent')}</h1>
+      <p class="sub">Your family portal. What would you like to do today?</p>
+    </div>
+
+    ${!children.length ? `
+      <div class="card empty">
+        <h2>No player linked yet</h2>
+        <p>Your account has been created, but the academy still needs to link it to your child. Please contact the coach.</p>
+      </div>
+    ` : `
+      <div class="card">
+        <div class="sectionhead">
+          <h2>Your player${children.length > 1 ? 's' : ''}</h2>
+          <span class="tag">${groups.join(' / ')}</span>
+        </div>
+        ${children.map(p => `
+          <div class="activity">
+            <b>${esc(p.name)}</b>
+            <p>${esc(p.age_group || 'Age group not set')}</p>
+          </div>
+        `).join('')}
+      </div>
+    `}
+
+    ${menuCards()}
+  `)
+
+  bindMenuCards()
+}
+
+// SHARED PORTAL PAGES
+function renderPortalPage(staff) {
+  const pageNames = {
+    profile: 'Player Profile',
+    attendance: 'Attendance',
+    payment: 'Payment',
+    videos: 'Videos'
+  }
+
+  shell(`
+    <div class="portal-back">
+      <button class="btn small" id="backHome">← Back to home</button>
+    </div>
+
+    <div class="hero">
+      <div>
+        <div class="eyebrow">Gaulois Aerion Academy</div>
+        <h1>${pageNames[currentTab] || 'Academy Portal'}</h1>
+        <p class="sub">${esc(profile?.full_name || '')}</p>
+      </div>
+      <span class="tag">${staff ? 'COACH / ADMIN' : 'PARENT PORTAL'}</span>
+    </div>
+
+    <section id="portalPage"></section>
+  `)
+
+  document.querySelector('#backHome').addEventListener('click', () => {
+    currentTab = 'home'
+    renderApp()
+  })
+
+  if (currentTab === 'profile') {
+    renderPlayerProfile(staff)
+  } else if (currentTab === 'attendance') {
+    staff ? renderStaffAttendance() : renderAttendancePage()
+  } else if (currentTab === 'payment') {
+    renderPaymentPage()
+  } else if (currentTab === 'videos') {
+    renderVideosPage()
+  }
+}
+
+// PLAYER PROFILE
+function renderPlayerProfile(staff) {
+  const panel = document.querySelector('#portalPage')
+
+  if (!children.length) {
+    panel.innerHTML = '<div class="card empty"><h2>No players found</h2></div>'
+    return
+  }
+
+  const groups = staff ? ['U10', 'U12'] : [...new Set(children.map(p => p.age_group))]
+  const selectedGroup = staff
+    ? (children.some(p => p.id === activePlayer)
+        ? children.find(p => p.id === activePlayer)?.age_group
+        : groups[0])
+    : null
+
+  const availablePlayers = staff
+    ? groupPlayers(selectedGroup)
+    : children
+
+  const player = availablePlayers.find(p => p.id === activePlayer) || availablePlayers[0]
+
+  if (!player) {
+    panel.innerHTML = '<div class="card empty">No players in this group.</div>'
+    return
+  }
+
+  panel.innerHTML = `
     <div class="card childselect">
       <div class="field">
         <label>Select player</label>
         <select id="profilePlayerSelect">
-          ${children.map(p=>`
-            <option value="${p.id}" ${p.id===player.id?'selected':''}>${esc(p.name)}</option>
+          ${availablePlayers.map(p => `
+            <option value="${p.id}" ${p.id === player.id ? 'selected' : ''}>${esc(p.name)}</option>
           `).join('')}
         </select>
       </div>
@@ -545,147 +622,273 @@ function renderPlayerProfile(){
       <div class="profile-avatar">⚽</div>
       <div class="eyebrow">Gaulois Aerion Academy</div>
       <h2>${esc(player.name)}</h2>
-      <p>${esc(player.age_group||'U12')} · Academy Player</p>
+      <p>${esc(player.age_group || 'Age group not set')} · Academy Player</p>
     </div>
 
     <div class="card">
       <h2>Player information</h2>
       <div class="profile-details">
         <div class="profile-detail"><small>Full name</small><b>${esc(player.name)}</b></div>
-        <div class="profile-detail"><small>Age group</small><b>${esc(player.age_group||'U12')}</b></div>
+        <div class="profile-detail"><small>Age group</small><b>${esc(player.age_group || 'Not set')}</b></div>
         <div class="profile-detail"><small>Jersey number</small><b>To be updated</b></div>
         <div class="profile-detail"><small>Position</small><b>To be updated</b></div>
         <div class="profile-detail"><small>Date of birth</small><b>To be updated</b></div>
-        <div class="profile-detail"><small>Team</small><b>Gaulois Aerion U12</b></div>
+        <div class="profile-detail"><small>Team</small><b>Gaulois Aerion ${esc(player.age_group || '')}</b></div>
       </div>
       <div class="placeholder-note">
-        This is a profile mock-up. Player details and photo can be added by the academy in a future update.
+        Player details and photos can be added by the academy in a future update.
       </div>
     </div>
   `
 
-  document.querySelector('#profilePlayerSelect').addEventListener('change',e=>{
-    activePlayer=e.target.value
-    renderPlayerProfile()
+  document.querySelector('#profilePlayerSelect').addEventListener('change', e => {
+    activePlayer = e.target.value
+    renderPlayerProfile(staff)
   })
 }
 
-// ATTENDANCE PAGE - EXISTING ATTENDANCE FUNCTIONALITY
-function renderAttendancePage(){
-  const panel=document.querySelector('#parentPage')
+// PARENT ATTENDANCE
+function renderAttendancePage() {
+  const panel = document.querySelector('#portalPage')
 
-  if(!children.length){
-    panel.innerHTML=`
+  if (!children.length) {
+    panel.innerHTML = `
       <div class="card empty">
         <h2>No player linked yet</h2>
-        <p>Your account has been created, but the academy still needs to link it to your child. Please contact the coach.</p>
+        <p>Please contact the academy.</p>
       </div>
     `
     return
   }
 
-  panel.innerHTML=`
+  const player = children.find(p => p.id === activePlayer) || children[0]
+
+  panel.innerHTML = `
     <div class="card childselect">
       <div class="sectionhead">
         <h2>Linked player</h2>
-        <span class="tag">Family account</span>
+        <span class="tag">${esc(player.age_group || '')}</span>
       </div>
-
       <div class="field">
         <label>Select your child</label>
         <select id="childSelect">
-          ${children.map(p=>`
-            <option value="${p.id}" ${p.id===activePlayer?'selected':''}>${esc(p.name)}</option>
+          ${children.map(p => `
+            <option value="${p.id}" ${p.id === player.id ? 'selected' : ''}>${esc(p.name)}</option>
           `).join('')}
         </select>
       </div>
     </div>
 
     <div class="subtabs">
-      <button class="${parentSubTab==='activities'?'active':''}" data-subtab="activities">Activities</button>
-      <button class="${parentSubTab==='history'?'active':''}" data-subtab="history">My responses</button>
+      <button class="${parentSubTab === 'activities' ? 'active' : ''}" data-subtab="activities">Activities</button>
+      <button class="${parentSubTab === 'history' ? 'active' : ''}" data-subtab="history">My responses</button>
     </div>
 
     <section id="attendanceContent"></section>
   `
 
-  document.querySelector('#childSelect').addEventListener('change',e=>{
-    activePlayer=e.target.value
+  document.querySelector('#childSelect').addEventListener('change', e => {
+    activePlayer = e.target.value
     renderAttendancePage()
   })
 
-  document.querySelectorAll('[data-subtab]').forEach(button=>{
-    button.addEventListener('click',()=>{
-      parentSubTab=button.dataset.subtab
+  document.querySelectorAll('[data-subtab]').forEach(button => {
+    button.addEventListener('click', () => {
+      parentSubTab = button.dataset.subtab
       renderAttendancePage()
     })
   })
 
-  const content=document.querySelector('#attendanceContent')
+  const content = document.querySelector('#attendanceContent')
 
-  if(parentSubTab==='history'){
-    const rows=responses.filter(r=>children.some(p=>p.id===r.player_id))
+  if (parentSubTab === 'history') {
+    const rows = responses.filter(r => r.player_id === player.id)
 
-    content.innerHTML=`
+    content.innerHTML = `
       <div class="card">
         <h2>My response history</h2>
-        ${rows.length?rows.map(r=>{
-          const a=activities.find(x=>x.id===r.activity_id)
-          const p=children.find(x=>x.id===r.player_id)
+        ${rows.length ? rows.map(r => {
+          const a = activities.find(x => x.id === r.activity_id)
 
-          return a&&p?`
+          return a ? `
             <div class="activity">
               <div class="activitytop">
-                <b>${esc(p.name)} · ${esc(a.title)}</b>
+                <b>${esc(player.name)} · ${esc(a.title)}</b>
                 ${statusTag(r.answer)}
               </div>
               <p>${dateLabel(a.activity_date)}</p>
-              <p>${r.absence_reason?`Reason: ${esc(r.absence_reason)}`:'No reason supplied'}</p>
+              <p>${r.absence_reason ? `Reason: ${esc(r.absence_reason)}` : 'No reason supplied'}</p>
             </div>
-          `:''
-        }).join(''):'<div class="empty">No responses submitted yet.</div>'}
+          ` : ''
+        }).join('') : '<div class="empty">No responses submitted yet.</div>'}
       </div>
     `
     return
   }
 
-  const player=children.find(p=>p.id===activePlayer)
-  const published=activities.filter(a=>a.is_published)
+  const published = activities.filter(a =>
+    a.is_published &&
+    (a.age_group || 'U12') === player.age_group
+  )
 
-  content.innerHTML=`
+  content.innerHTML = `
     <div class="grid">
       ${published.length
-        ?published.map(a=>activityCard(a,player)).join('')
-        :'<div class="card span12 empty">No activities have been published yet.</div>'}
+        ? published.map(a => activityCard(a, player)).join('')
+        : '<div class="card span12 empty">No activities have been published for this age group yet.</div>'}
     </div>
   `
 
-  document.querySelectorAll('[data-answer]').forEach(b=>
-    b.addEventListener('click',()=>saveAnswer(
-      b.dataset.activity,
-      b.dataset.player,
-      b.dataset.answer
-    ))
-  )
+  bindAttendanceButtons()
+}
 
-  document.querySelectorAll('[data-reason]').forEach(b=>
-    b.addEventListener('click',()=>saveReason(
-      b.dataset.reason,
-      b.dataset.player
-    ))
-  )
+// STAFF ATTENDANCE
+function renderStaffAttendance() {
+  const panel = document.querySelector('#portalPage')
+  const players = groupPlayers(staffGroup)
+  const groupActs = groupActivities(staffGroup)
+
+  panel.innerHTML = `
+    <div class="card">
+      <h2>Select age group</h2>
+      <div class="group-switch">
+        <button class="${staffGroup === 'U10' ? 'active' : ''}" data-group="U10">U10</button>
+        <button class="${staffGroup === 'U12' ? 'active' : ''}" data-group="U12">U12</button>
+      </div>
+      <p class="sub">Manage activities and attendance for ${staffGroup}.</p>
+    </div>
+
+    <div class="staff-section">
+      <div class="card">
+        <h2>${staffGroup} roster · ${players.length} players</h2>
+        ${players.length ? `
+          <div class="roster-grid">
+            ${players.map(p => `<div class="roster-player">${esc(p.name)}</div>`).join('')}
+          </div>
+        ` : '<p class="empty">No players in this age group yet.</p>'}
+      </div>
+    </div>
+
+    <div class="staff-section card">
+      <h2>Publish a ${staffGroup} activity</h2>
+      <form id="activityForm">
+        <div class="formgrid">
+          <div class="field">
+            <label>Activity type</label>
+            <select id="actType">
+              <option value="training">Training</option>
+              <option value="match">Match</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>Date</label>
+            <input id="actDate" type="date" required>
+          </div>
+
+          <div class="field">
+            <label>Activity title</label>
+            <input id="actTitle" required placeholder="e.g. ${staffGroup} Training Session">
+          </div>
+
+          <div class="field">
+            <label>Start time</label>
+            <input id="actTime" type="time">
+          </div>
+
+          <div class="field">
+            <label>Venue</label>
+            <input id="actVenue">
+          </div>
+
+          <div class="field">
+            <label>Opponent (matches)</label>
+            <input id="actOpponent">
+          </div>
+
+          <div class="field full">
+            <label>Additional information (optional)</label>
+            <textarea id="actNotes"></textarea>
+          </div>
+        </div>
+
+        <button class="btn primary" type="submit">Publish ${staffGroup} activity</button>
+      </form>
+    </div>
+
+    <div class="staff-section card">
+      <h2>${staffGroup} activities and availability</h2>
+      ${groupActs.length ? groupActs.map(a => staffActivityReport(a, players)).join('') : '<p class="empty">No activities published for this group yet.</p>'}
+    </div>
+  `
+
+  document.querySelectorAll('[data-group]').forEach(button => {
+    button.addEventListener('click', () => {
+      staffGroup = button.dataset.group
+      renderStaffAttendance()
+    })
+  })
+
+  document.querySelector('#activityForm').addEventListener('submit', createActivity)
+}
+
+function staffActivityReport(a, players) {
+  const rs = responses.filter(r => r.activity_id === a.id)
+  const count = v => rs.filter(r => r.answer === v).length
+  const answered = players.filter(p => rs.some(r => r.player_id === p.id)).length
+
+  return `
+    <div class="activity">
+      <div class="activitytop">
+        <div>
+          <span class="tag ${a.activity_type === 'match' ? 'match' : ''}">${esc(a.activity_type)}</span>
+          <h3>${esc(a.title)}</h3>
+          <p>${dateLabel(a.activity_date)} ${a.start_time ? '· ' + esc(String(a.start_time).slice(0, 5)) : ''}</p>
+          <p>${a.venue ? esc(a.venue) : 'Venue to be confirmed'}</p>
+        </div>
+        <b>${count('yes')} / ${players.length} yes</b>
+      </div>
+
+      <div class="response">
+        ${statusTag('yes')} ${count('yes')}
+        ${statusTag('no')} ${count('no')}
+        ${statusTag('unsure')} ${count('unsure')}
+        ${statusTag(null)} ${Math.max(0, players.length - answered)}
+      </div>
+
+      <div class="tablewrap">
+        <table>
+          <thead>
+            <tr><th>Player</th><th>Availability</th><th>Reason</th></tr>
+          </thead>
+          <tbody>
+            ${players.map(p => {
+              const r = rs.find(x => x.player_id === p.id)
+              return `
+                <tr>
+                  <td>${esc(p.name)}</td>
+                  <td>${statusTag(r?.answer)}</td>
+                  <td>${esc(r?.absence_reason || '—')}</td>
+                </tr>
+              `
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `
 }
 
 // PAYMENT PLACEHOLDER
-function renderPaymentPage(){
-  const panel=document.querySelector('#parentPage')
+function renderPaymentPage() {
+  const panel = document.querySelector('#portalPage')
 
-  panel.innerHTML=`
+  panel.innerHTML = `
     <div class="card">
       <div class="payment-placeholder">
         <div class="payment-icon">💳</div>
         <h2>Payment & Fees</h2>
-        <p class="sub">Your academy payment information will be available here.</p>
+        <p class="sub">Academy payment information will be available here.</p>
         <span class="tag">Coming soon</span>
       </div>
     </div>
@@ -693,29 +896,29 @@ function renderPaymentPage(){
     <div class="card spacetop">
       <h2>Payment information</h2>
       <div class="profile-details">
-        <div class="profile-detail"><small>Player</small><b>${children.length?esc(children.map(p=>p.name).join(', ')):'Not linked'}</b></div>
+        <div class="profile-detail"><small>Players</small><b>${children.length ? esc(children.map(p => p.name).join(', ')) : 'Not linked'}</b></div>
         <div class="profile-detail"><small>Payment status</small><b>To be updated</b></div>
         <div class="profile-detail"><small>Outstanding fees</small><b>To be updated</b></div>
         <div class="profile-detail"><small>Payment history</small><b>Coming soon</b></div>
       </div>
       <div class="placeholder-note">
-        No payments can be made or recorded through this page yet. This is a visual placeholder for a future payment feature.
+        No payments can be made or recorded through this page yet.
       </div>
     </div>
   `
 }
 
-// VIDEOS PAGE - PLACEHOLDER FRAMES ONLY
-function renderVideosPage(){
-  const panel=document.querySelector('#parentPage')
+// VIDEOS PLACEHOLDER
+function renderVideosPage() {
+  const panel = document.querySelector('#portalPage')
 
-  panel.innerHTML=`
+  panel.innerHTML = `
     <div class="card">
       <h2>Player Videos</h2>
       <p class="sub">Match footage, training clips and player highlights will appear here.</p>
 
       <div class="video-grid">
-        ${['Match Highlights','Training Footage','Player Highlights','Academy Moments'].map(title=>`
+        ${['Match Highlights', 'Training Footage', 'Player Highlights', 'Academy Moments'].map(title => `
           <div class="video-placeholder">
             <div class="video-frame">▶</div>
             <h3>${title}</h3>
@@ -731,42 +934,48 @@ function renderVideosPage(){
   `
 }
 
-function statusTag(answer){
-  const label=answer==='yes'?'Yes':answer==='no'?'No':answer==='unsure'?'Unsure':'Pending'
-  return `<span class="status ${answer||'pending'}">${label}</span>`
+function statusTag(answer) {
+  const label = answer === 'yes'
+    ? 'Yes'
+    : answer === 'no'
+      ? 'No'
+      : answer === 'unsure'
+        ? 'Unsure'
+        : 'Pending'
+
+  return `<span class="status ${answer || 'pending'}">${label}</span>`
 }
 
-function activityCard(a,player){
-  const r=responseFor(a.id,player.id)
+function activityCard(a, player) {
+  const r = responseFor(a.id, player.id)
 
   return `
     <article class="card activity">
       <div class="activitytop">
-        <span class="tag ${a.activity_type==='match'?'match':''}">${esc(a.activity_type)}</span>
+        <span class="tag ${a.activity_type === 'match' ? 'match' : ''}">${esc(a.activity_type)}</span>
         ${statusTag(r?.answer)}
       </div>
 
       <h2>${esc(a.title)}</h2>
-      <p>${dateLabel(a.activity_date)} ${a.start_time?`· ${esc(String(a.start_time).slice(0,5))}`:''}</p>
-      <p>${a.opponent?`Opponent: ${esc(a.opponent)} · `:''}${a.venue?`Venue: ${esc(a.venue)}`:'Venue to be confirmed'}</p>
-      ${a.notes?`<p>${esc(a.notes)}</p>`:''}
+      <p>${dateLabel(a.activity_date)} ${a.start_time ? `· ${esc(String(a.start_time).slice(0, 5))}` : ''}</p>
+      <p>${a.opponent ? `Opponent: ${esc(a.opponent)} · ` : ''}${a.venue ? `Venue: ${esc(a.venue)}` : 'Venue to be confirmed'}</p>
+      ${a.notes ? `<p>${esc(a.notes)}</p>` : ''}
 
       <div class="responsearea">
         <b>Can ${esc(player.name)} attend?</b>
-
         <div class="response">
-          ${[['yes','Yes'],['no','No'],['unsure','Unsure']].map(([v,l])=>`
-            <button class="choice ${r?.answer===v?'selected '+v:''}" data-answer="${v}" data-activity="${a.id}" data-player="${player.id}">${l}</button>
+          ${[['yes', 'Yes'], ['no', 'No'], ['unsure', 'Unsure']].map(([v, l]) => `
+            <button class="choice ${r?.answer === v ? 'selected ' + v : ''}" data-answer="${v}" data-activity="${a.id}" data-player="${player.id}">${l}</button>
           `).join('')}
         </div>
 
-        ${r?.answer==='no'?`
+        ${r?.answer === 'no' ? `
           <div class="field">
             <label>Reason for absence (optional)</label>
-            <textarea id="reason-${a.id}">${esc(r.absence_reason||'')}</textarea>
+            <textarea id="reason-${a.id}">${esc(r.absence_reason || '')}</textarea>
             <button class="btn small" data-reason="${a.id}" data-player="${player.id}">Save reason</button>
           </div>
-        `:''}
+        ` : ''}
 
         <p class="muted smalltext">No response deadline · You can update your answer at any time.</p>
       </div>
@@ -774,18 +983,35 @@ function activityCard(a,player){
   `
 }
 
-async function saveAnswer(activity_id,player_id,answer){
-  const payload={
+function bindAttendanceButtons() {
+  document.querySelectorAll('[data-answer]').forEach(b =>
+    b.addEventListener('click', () => saveAnswer(
+      b.dataset.activity,
+      b.dataset.player,
+      b.dataset.answer
+    ))
+  )
+
+  document.querySelectorAll('[data-reason]').forEach(b =>
+    b.addEventListener('click', () => saveReason(
+      b.dataset.reason,
+      b.dataset.player
+    ))
+  )
+}
+
+async function saveAnswer(activity_id, player_id, answer) {
+  const payload = {
     activity_id,
     player_id,
-    responded_by:user.id,
+    responded_by: user.id,
     answer
   }
 
-  const {error}=await supabase.from('responses')
-    .upsert(payload,{onConflict:'activity_id,player_id'})
+  const { error } = await supabase.from('responses')
+    .upsert(payload, { onConflict: 'activity_id,player_id' })
 
-  if(error){
+  if (error) {
     toast(error.message)
     return
   }
@@ -795,20 +1021,20 @@ async function saveAnswer(activity_id,player_id,answer){
   toast('Availability updated')
 }
 
-async function saveReason(activity_id,player_id){
-  const old=responseFor(activity_id,player_id)
-  if(!old)return
+async function saveReason(activity_id, player_id) {
+  const old = responseFor(activity_id, player_id)
+  if (!old) return
 
-  const textarea=document.querySelector(`#reason-${CSS.escape(activity_id)}`)
-  if(!textarea)return
+  const textarea = document.querySelector(`#reason-${CSS.escape(activity_id)}`)
+  if (!textarea) return
 
-  const absence_reason=textarea.value
+  const absence_reason = textarea.value
 
-  const {error}=await supabase.from('responses')
-    .update({absence_reason,responded_by:user.id})
-    .eq('id',old.id)
+  const { error } = await supabase.from('responses')
+    .update({ absence_reason, responded_by: user.id })
+    .eq('id', old.id)
 
-  if(error){
+  if (error) {
     toast(error.message)
     return
   }
@@ -818,259 +1044,101 @@ async function saveReason(activity_id,player_id){
   toast('Optional reason saved')
 }
 
-// STAFF / ADMIN DASHBOARD
-function renderStaffApp(){
-  const tabs=[
-    ['overview','Availability'],
-    ['create','Publish activity'],
-    ['roster','U12 roster']
-  ]
+// STAFF PORTAL - SAME FOUR MENUS
+function renderStaffApp() {
+  if (currentTab === 'home') {
+    renderStaffHome()
+    return
+  }
 
-  if(!tabs.some(([id])=>id===currentTab))currentTab='overview'
+  renderPortalPage(true)
+}
+
+function renderStaffHome() {
+  const u10 = groupPlayers('U10')
+  const u12 = groupPlayers('U12')
 
   shell(`
-    <div class="hero">
-      <div>
-        <div class="eyebrow">Coach & administrator</div>
-        <h1>U12 attendance management</h1>
-        <p class="sub">Publish activities and review parent responses.</p>
-      </div>
-      <span class="tag">GA U12</span>
+    <div class="portal-welcome">
+      <div class="eyebrow">Gaulois Aerion Academy</div>
+      <h1>Hello, ${esc(profile?.full_name || 'Coach')}</h1>
+      <p class="sub">Coach & administrator portal.</p>
     </div>
 
-    <nav class="tabs">
-      ${tabs.map(([id,label])=>`
-        <button class="tab ${currentTab===id?'active':''}" data-tab="${id}">${label}</button>
-      `).join('')}
-    </nav>
+    <div class="grid">
+      <div class="card span6">
+        <div class="muted">U10 players</div>
+        <div class="metric">${u10.length}</div>
+      </div>
+      <div class="card span6">
+        <div class="muted">U12 players</div>
+        <div class="metric">${u12.length}</div>
+      </div>
+    </div>
 
-    <section id="panel"></section>
+    ${menuCards()}
   `)
 
-  document.querySelectorAll('[data-tab]').forEach(b=>
-    b.addEventListener('click',()=>{
-      currentTab=b.dataset.tab
-      renderApp()
-    })
-  )
-
-  renderStaffPanel()
+  bindMenuCards()
 }
 
-function renderStaffPanel(){
-  const panel=document.querySelector('#panel')
-
-  if(currentTab==='create'){
-    panel.innerHTML=`
-      <div class="card">
-        <h2>Publish a U12 activity</h2>
-
-        <form id="activityForm">
-          <div class="formgrid">
-            <div class="field">
-              <label>Activity type</label>
-              <select id="actType">
-                <option value="training">Training</option>
-                <option value="match">Match</option>
-              </select>
-            </div>
-
-            <div class="field">
-              <label>Date</label>
-              <input id="actDate" type="date" required>
-            </div>
-
-            <div class="field">
-              <label>Activity title</label>
-              <input id="actTitle" required placeholder="e.g. U12 Training Session">
-            </div>
-
-            <div class="field">
-              <label>Start time</label>
-              <input id="actTime" type="time">
-            </div>
-
-            <div class="field">
-              <label>Venue</label>
-              <input id="actVenue">
-            </div>
-
-            <div class="field">
-              <label>Opponent (matches)</label>
-              <input id="actOpponent">
-            </div>
-
-            <div class="field full">
-              <label>Additional information (optional)</label>
-              <textarea id="actNotes"></textarea>
-            </div>
-          </div>
-
-          <button class="btn primary" type="submit">Publish activity</button>
-        </form>
-      </div>
-
-      <div class="card spacetop">
-        <h2>Existing activities</h2>
-        ${activities.map(a=>`
-          <div class="activity">
-            <b>${esc(a.title)}</b>
-            <p>${dateLabel(a.activity_date)} · ${esc(a.activity_type)}</p>
-          </div>
-        `).join('')}
-      </div>
-    `
-
-    document.querySelector('#activityForm')
-      .addEventListener('submit',createActivity)
-
-    return
-  }
-
-  if(currentTab==='roster'){
-    panel.innerHTML=`
-      <div class="card">
-        <h2>U12 player roster</h2>
-        <div class="playerlist">
-          ${children.map(p=>`<div class="player">${esc(p.name)}</div>`).join('')}
-        </div>
-      </div>
-    `
-    return
-  }
-
-  panel.innerHTML=`
-    <div class="grid">
-      <div class="card span4">
-        <div class="muted">Registered U12 players</div>
-        <div class="metric">${children.length}</div>
-      </div>
-
-      <div class="card span4">
-        <div class="muted">Activities</div>
-        <div class="metric">${activities.length}</div>
-      </div>
-
-      <div class="card span4">
-        <div class="muted">Parent responses</div>
-        <div class="metric">${responses.length}</div>
-      </div>
-
-      <div class="card span12">
-        <h2>Availability by activity</h2>
-
-        ${activities.map(a=>{
-          const rs=responses.filter(r=>r.activity_id===a.id)
-          const count=v=>rs.filter(r=>r.answer===v).length
-
-          return `
-            <div class="activity">
-              <div class="activitytop">
-                <div>
-                  <span class="tag ${a.activity_type==='match'?'match':''}">${esc(a.activity_type)}</span>
-                  <h3>${esc(a.title)}</h3>
-                  <p>${dateLabel(a.activity_date)}</p>
-                </div>
-                <b>${count('yes')} / ${children.length} yes</b>
-              </div>
-
-              <div class="response">
-                ${statusTag('yes')} ${count('yes')}
-                ${statusTag('no')} ${count('no')}
-                ${statusTag('unsure')} ${count('unsure')}
-                ${statusTag(null)} ${Math.max(0,children.length-rs.length)}
-              </div>
-
-              <div class="tablewrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Player</th>
-                      <th>Availability</th>
-                      <th>Reason</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    ${children.map(p=>{
-                      const r=rs.find(x=>x.player_id===p.id)
-
-                      return `
-                        <tr>
-                          <td>${esc(p.name)}</td>
-                          <td>${statusTag(r?.answer)}</td>
-                          <td>${esc(r?.absence_reason||'—')}</td>
-                        </tr>
-                      `
-                    }).join('')}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          `
-        }).join('')}
-      </div>
-    </div>
-  `
-}
-
-async function createActivity(e){
+async function createActivity(e) {
   e.preventDefault()
 
-  const payload={
-    activity_type:document.querySelector('#actType').value,
-    title:document.querySelector('#actTitle').value.trim(),
-    activity_date:document.querySelector('#actDate').value,
-    start_time:document.querySelector('#actTime').value||null,
-    venue:document.querySelector('#actVenue').value.trim()||null,
-    opponent:document.querySelector('#actOpponent').value.trim()||null,
-    notes:document.querySelector('#actNotes').value.trim()||null,
-    is_published:true
+  const payload = {
+    age_group: staffGroup,
+    activity_type: document.querySelector('#actType').value,
+    title: document.querySelector('#actTitle').value.trim(),
+    activity_date: document.querySelector('#actDate').value,
+    start_time: document.querySelector('#actTime').value || null,
+    venue: document.querySelector('#actVenue').value.trim() || null,
+    opponent: document.querySelector('#actOpponent').value.trim() || null,
+    notes: document.querySelector('#actNotes').value.trim() || null,
+    is_published: true
   }
 
-  const {error}=await supabase.from('activities').insert(payload)
+  const { error } = await supabase.from('activities').insert(payload)
 
-  if(error){
+  if (error) {
     toast(error.message)
     return
   }
 
   await loadData()
-  currentTab='overview'
   renderApp()
-  toast('Activity published')
+  toast(`${staffGroup} activity published`)
 }
 
-async function init(){
-  if(!supabaseUrl||!supabaseKey){
+async function init() {
+  if (!supabaseUrl || !supabaseKey) {
     renderLogin('The Supabase environment variables are missing. Check the Netlify build settings and redeploy.')
     return
   }
 
   addPortalStyles()
-  supabase=createClient(supabaseUrl,supabaseKey)
+  supabase = createClient(supabaseUrl, supabaseKey)
 
-  supabase.auth.onAuthStateChange((event,session)=>{
-
-    if(event==='PASSWORD_RECOVERY' && session?.user){
-      recoveryMode=true
-      user=session.user
+  supabase.auth.onAuthStateChange((event, session) => {
+    if (event === 'PASSWORD_RECOVERY' && session?.user) {
+      recoveryMode = true
+      user = session.user
       renderResetPassword()
       return
     }
 
-    if(event==='INITIAL_SESSION'){
-      if(session?.user){
-        user=session.user
-        loadSession().catch(e=>renderLogin(e.message))
-      }else{
+    if (event === 'INITIAL_SESSION') {
+      if (session?.user) {
+        user = session.user
+        loadSession().catch(e => renderLogin(e.message))
+      } else {
         renderLogin()
       }
       return
     }
 
-    if(event==='SIGNED_IN' && session?.user && !recoveryMode){
-      user=session.user
-      loadSession().catch(e=>renderLogin(e.message))
+    if (event === 'SIGNED_IN' && session?.user && !recoveryMode) {
+      user = session.user
+      loadSession().catch(e => renderLogin(e.message))
     }
   })
 }
