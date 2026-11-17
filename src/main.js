@@ -113,9 +113,7 @@ function jerseyDisplay(player) {
 function loginPage() {
   root.innerHTML = `
     <main class="login-page">
-
       <section class="login-card">
-
         <div class="login-brand">
           <img
             src="/gaulois-logo.png"
@@ -245,9 +243,7 @@ function loginPage() {
         <div class="login-footer">
           GAULOIS AERION ACADEMY
         </div>
-
       </section>
-
     </main>
   `
 }
@@ -513,7 +509,7 @@ function rosterPage() {
 }
 
 // --------------------------------------------------
-// PLAYER PROFILES
+// PLAYER PROFILES - COLLAPSIBLE BY TEAM
 // --------------------------------------------------
 
 function profilePage() {
@@ -533,45 +529,72 @@ function profilePage() {
 
       <div class="page-heading">
         <h2>Player Profiles</h2>
-        <p class="muted">Browse players by team</p>
+        <p class="muted">Browse players by team. Tap a team to expand its roster.</p>
       </div>
 
-      ${teams.map(team => {
-        const teamPlayers = roster
-          .filter(player => player.age_group === team)
-          .sort((a, b) => a.name.localeCompare(b.name))
+      <section class="profile-team-groups">
+        ${teams.map(team => {
+          const teamPlayers = roster
+            .filter(player => player.age_group === team)
+            .sort((a, b) => a.name.localeCompare(b.name))
 
-        return `
-          <section class="profile-team-section">
-            <div class="profile-team-heading">
-              <div>
-                <h3>${team} TEAM</h3>
-                <small>Gaulois Aerion Academy</small>
+          return `
+            <details class="profile-team-section">
+
+              <summary class="profile-team-heading">
+
+                <div class="profile-team-title">
+                  <h3>${team} TEAM</h3>
+                  <small>Gaulois Aerion Academy</small>
+                </div>
+
+                <div class="profile-team-right">
+                  <span class="profile-team-count">
+                    ${teamPlayers.length}
+                    ${teamPlayers.length === 1 ? 'PLAYER' : 'PLAYERS'}
+                  </span>
+                  <span class="profile-chevron" aria-hidden="true">⌄</span>
+                </div>
+
+              </summary>
+
+              <div class="profile-team-content">
+
+                <div class="roster-list">
+                  ${teamPlayers.map(player => `
+                    <article class="player-card">
+                      <div class="player-number">
+                        ${jerseyDisplay(player)}
+                      </div>
+
+                      <div class="player-info">
+                        <strong>${esc(player.name)}</strong>
+                        <small>
+                          ${esc(player.position || 'Position not assigned')}
+                        </small>
+                      </div>
+
+                      <button
+                        class="view-btn"
+                        data-action="player"
+                        data-player="${player.id}"
+                      >
+                        View →
+                      </button>
+                    </article>
+                  `).join('')}
+
+                  ${teamPlayers.length === 0
+                    ? '<div class="empty-state">No players registered yet.</div>'
+                    : ''}
+                </div>
+
               </div>
-              <span>${teamPlayers.length} PLAYERS</span>
-            </div>
 
-            <div class="roster-list">
-              ${teamPlayers.map(player => `
-                <article class="player-card">
-                  <div class="player-number">${jerseyDisplay(player)}</div>
-                  <div class="player-info">
-                    <strong>${esc(player.name)}</strong>
-                    <small>${esc(player.position || 'Position not assigned')}</small>
-                  </div>
-                  <button class="view-btn" data-action="player" data-player="${player.id}">
-                    View →
-                  </button>
-                </article>
-              `).join('')}
-
-              ${teamPlayers.length === 0
-                ? '<div class="empty-state">No players registered yet.</div>'
-                : ''}
-            </div>
-          </section>
-        `
-      }).join('')}
+            </details>
+          `
+        }).join('')}
+      </section>
     </main>
   `
 }
