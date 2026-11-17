@@ -278,11 +278,6 @@ h3 {
   font-weight: 800;
   font-size: 14px;
   flex-shrink: 0;
-}
-
-/* UNASSIGNED JERSEY NUMBER */
-
-.player-number {
   text-align: center;
 }
 
@@ -555,13 +550,21 @@ h3 {
   font-size: 14px;
 }
 
+/* FORGOT PASSWORD LINK */
+
 .login-container a {
   display: block;
   text-align: center;
   margin-top: 20px;
-  color: #9b751f;
+  color: #0057a8;
   font-size: 12px;
+  font-weight: 700;
   text-decoration: none;
+}
+
+.login-container a:hover {
+  color: #004582;
+  text-decoration: underline;
 }
 
 /* SEPARATE LOGIN OPTIONS */
@@ -581,9 +584,39 @@ h3 {
   border-radius: 10px;
   cursor: pointer;
   transition: all 0.2s ease;
+  background: #0057a8;
+  color: white;
+  border: none;
+}
+
+.login-options button:hover {
+  background: #004582;
 }
 
 .login-options button:active {
+  transform: scale(0.98);
+}
+
+/* LOGIN FORM BUTTON */
+
+.login-container button[type="submit"] {
+  width: 100%;
+  background: #0057a8;
+  color: white;
+  border: none;
+  border-radius: 9px;
+  padding: 13px 16px;
+  margin-top: 12px;
+  font-size: 14px;
+  font-weight: 800;
+  transition: background 0.2s ease;
+}
+
+.login-container button[type="submit"]:hover {
+  background: #004582;
+}
+
+.login-container button[type="submit"]:active {
   transform: scale(0.98);
 }
 
