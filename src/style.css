@@ -4,9 +4,8 @@
 :root {
   font-family: 'Inter', sans-serif;
   color: #172033;
-  background: #e9edf3;
+  background: #eef2f7;
   font-synthesis: none;
-  text-rendering: optimizeLegibility;
 }
 
 * {
@@ -16,14 +15,12 @@
 body {
   margin: 0;
   min-width: 320px;
-  min-height: 100vh;
-  background: #e9edf3;
+  background: #eef2f7;
 }
 
 button,
 input,
-select,
-textarea {
+select {
   font: inherit;
 }
 
@@ -31,410 +28,576 @@ button {
   cursor: pointer;
 }
 
-/* CENTRED PORTAL */
-
 #app {
-  width: 100%;
   min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
   padding: 30px 16px;
 }
 
-/* HEADER */
+/* --------------------------------
+   LOGIN PAGE
+-------------------------------- */
+
+.login-page {
+  min-height: calc(100vh - 60px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 0;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 480px;
+  background: #fff;
+  border: 1px solid #dce3ed;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 18px 50px rgba(16, 43, 80, 0.13);
+}
+
+.login-brand {
+  background: #102b50;
+  color: #fff;
+  text-align: center;
+  padding: 27px 20px 25px;
+}
+
+.login-logo {
+  width: 95px;
+  height: 95px;
+  object-fit: contain;
+  display: block;
+  margin: 0 auto 12px;
+}
+
+.login-brand h1 {
+  font-size: 21px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  margin: 0;
+}
+
+.login-brand p {
+  color: #d5deeb;
+  font-size: 11px;
+  letter-spacing: 2px;
+  margin: 8px 0 0;
+}
+
+.login-choice-content,
+.login-form-content {
+  padding: 28px 24px;
+}
+
+.login-eyebrow {
+  display: block;
+  color: #7a8799;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  text-align: center;
+}
+
+.login-choice-content h2,
+.login-form-content h2 {
+  color: #172b49;
+  text-align: center;
+  font-size: 21px;
+  font-weight: 800;
+  margin: 8px 0 5px;
+}
+
+.login-description {
+  color: #778397;
+  text-align: center;
+  font-size: 13px;
+  margin: 0 0 23px;
+}
+
+.login-choice-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 13px;
+}
+
+.login-choice {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  min-width: 0;
+  min-height: 165px;
+  padding: 17px 14px;
+  background: #fff;
+  border: 1.5px solid #dce4ef;
+  border-radius: 14px;
+  color: #172b49;
+  transition: 0.2s ease;
+}
+
+.login-choice:hover {
+  border-color: #2877cf;
+  background: #f4f8ff;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(40, 119, 207, 0.10);
+}
+
+.login-choice:focus-visible {
+  outline: 3px solid rgba(40, 119, 207, 0.25);
+}
+
+.login-choice-icon {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  background: #eaf2fc;
+  color: #175ca6;
+  border-radius: 12px;
+  font-size: 22px;
+  margin-bottom: 14px;
+}
+
+.login-choice strong {
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.login-choice small {
+  color: #778397;
+  font-size: 11px;
+  line-height: 1.5;
+  margin-top: 6px;
+}
+
+.login-choice-arrow {
+  color: #2877cf;
+  font-size: 19px;
+  align-self: flex-end;
+  margin-top: auto;
+  padding-top: 8px;
+}
+
+.login-hint {
+  color: #929cac;
+  text-align: center;
+  font-size: 11px;
+  margin: 21px 0 0;
+}
+
+.login-footer {
+  background: #f7f9fc;
+  border-top: 1px solid #edf0f5;
+  color: #8792a2;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-align: center;
+  padding: 14px;
+}
+
+.login-change-btn {
+  margin-bottom: 23px;
+}
+
+/* --------------------------------
+   GENERAL BUTTONS
+-------------------------------- */
+
+.primary-btn {
+  width: 100%;
+  border: none;
+  border-radius: 9px;
+  padding: 13px 16px;
+  background: #1764ad;
+  color: #fff;
+  font-weight: 700;
+  margin-top: 15px;
+  transition: 0.2s;
+}
+
+.primary-btn:hover {
+  background: #104c88;
+}
+
+.secondary-btn {
+  width: 100%;
+  padding: 13px;
+  border: 1px solid #1764ad;
+  border-radius: 9px;
+  background: #fff;
+  color: #1764ad;
+  font-weight: 700;
+  margin-top: 10px;
+}
+
+.text-btn {
+  display: block;
+  width: 100%;
+  background: none;
+  border: none;
+  color: #1764ad;
+  font-size: 13px;
+  font-weight: 600;
+  margin-top: 18px;
+}
+
+.back-btn {
+  background: #eaf2fc;
+  color: #175ca6;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 20px;
+}
+
+.logout-btn {
+  background: #fff;
+  color: #102b50;
+  border: 1px solid #dce4ef;
+  border-radius: 8px;
+  padding: 9px 14px;
+  font-weight: 700;
+}
+
+/* --------------------------------
+   FORMS
+-------------------------------- */
+
+label {
+  display: block;
+  color: #526176;
+  font-size: 12px;
+  font-weight: 700;
+  margin: 14px 0 6px;
+}
+
+input,
+select {
+  width: 100%;
+  min-height: 43px;
+  padding: 10px 12px;
+  background: #fff;
+  border: 1px solid #d8e0eb;
+  border-radius: 8px;
+  color: #172033;
+  outline: none;
+}
+
+input:focus,
+select:focus {
+  border-color: #2877cf;
+  box-shadow: 0 0 0 3px rgba(40, 119, 207, 0.10);
+}
+
+/* --------------------------------
+   HEADER
+-------------------------------- */
 
 .topbar {
-  width: 100%;
   max-width: 1000px;
-  background: #101b30;
-  color: white;
-  padding: 18px 22px;
+  margin: 0 auto;
+  background: #102b50;
+  color: #fff;
+  padding: 15px 22px;
+  border-radius: 14px 14px 0 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  box-shadow: 0 3px 12px #0002;
-  border-radius: 15px 15px 0 0;
 }
 
 .brand {
   display: flex;
   align-items: center;
   gap: 12px;
-  min-width: 0;
-}
-
-.brand-text {
-  min-width: 0;
-}
-
-.brand-name {
-  font-size: 17px;
-  font-weight: 800;
-  letter-spacing: -0.5px;
-}
-
-.topbar small {
-  display: block;
-  margin-top: 4px;
-  color: #aab7cb;
-  font-size: 11px;
 }
 
 .portal-logo {
-  display: block;
-  width: 55px;
-  height: 55px;
+  width: 48px;
+  height: 48px;
   object-fit: contain;
-  flex-shrink: 0;
 }
 
-.logout-btn {
-  background: #263750;
-  color: white;
-  border: 1px solid #46546a;
-  padding: 9px 14px;
-  border-radius: 8px;
-  font-size: 12px;
-  font-weight: 600;
-  flex-shrink: 0;
+.brand-name {
+  font-size: 16px;
+  font-weight: 800;
 }
 
-/* GENERAL LAYOUT */
+.brand small {
+  color: #c7d3e3;
+  font-size: 11px;
+}
+
+/* --------------------------------
+   MAIN CONTAINER
+-------------------------------- */
 
 .container {
-  width: 100%;
   max-width: 1000px;
-  min-height: 650px;
   margin: 0 auto;
-  padding: 30px 28px 55px;
-  background: white;
-  border-radius: 0 0 15px 15px;
-  box-shadow: 0 8px 30px #14213a12;
+  min-height: 300px;
+  background: #fff;
+  padding: 28px;
+  border-radius: 0 0 14px 14px;
+  box-shadow: 0 12px 35px rgba(16, 43, 80, 0.08);
 }
 
-h2 {
-  font-size: 25px;
-  margin: 15px 0 8px;
-  font-weight: 800;
-  letter-spacing: -0.8px;
-}
-
-h3 {
-  font-size: 17px;
-  font-weight: 700;
+.welcome-section h2,
+.page-heading h2 {
+  color: #102b50;
+  margin: 0 0 6px;
 }
 
 .muted {
-  color: #788397;
+  color: #78869a;
   font-size: 13px;
-  margin: 0 0 25px;
-}
-
-.welcome-section {
-  margin-bottom: 25px;
-}
-
-.page-heading {
-  margin-bottom: 25px;
-}
-
-.page-heading h2 {
-  margin-top: 12px;
 }
 
 .section-heading {
-  margin-bottom: 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin: 28px 0 15px;
 }
 
-/* HOME MENU */
+.section-heading h3 {
+  color: #102b50;
+  margin: 0;
+  font-size: 17px;
+}
+
+.page-heading {
+  margin-bottom: 22px;
+}
+
+/* --------------------------------
+   HOME MENU
+-------------------------------- */
 
 .menu-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  margin: 25px 0 35px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-top: 25px;
 }
 
 .menu-card {
-  background: white;
-  border: 1px solid #e8ebf0;
-  border-radius: 13px;
-  padding: 18px 15px;
-  min-height: 115px;
-  display: flex;
-  flex-direction: column;
-  gap: 9px;
+  border: 1px solid #e0e6ef;
+  background: #fff;
+  border-radius: 12px;
+  padding: 18px 14px;
   cursor: pointer;
-  box-shadow: 0 3px 10px #14213a08;
-  transition: transform 0.2s;
+  transition: 0.2s;
 }
 
-.menu-card:active {
-  transform: scale(0.98);
+.menu-card:hover,
+.team-card:hover {
+  border-color: #2877cf;
+  transform: translateY(-2px);
+  box-shadow: 0 7px 20px rgba(16, 43, 80, 0.08);
 }
 
 .menu-icon {
+  display: block;
   font-size: 25px;
-}
-
-.menu-card strong {
-  font-size: 14px;
-}
-
-.menu-card small {
-  font-size: 11px;
-  color: #8a94a5;
-}
-
-/* TEAM CARDS */
-
-.team-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
-  margin-top: 17px;
-}
-
-.team-card {
-  background: white;
-  border: 1px solid #e5e9ef;
-  border-radius: 15px;
-  padding: 20px 17px;
-  min-height: 170px;
-  cursor: pointer;
-  box-shadow: 0 4px 14px #14213a09;
-  transition: all 0.2s ease;
-}
-
-.team-card:hover {
-  border-color: #c89b35;
-  transform: translateY(-2px);
-}
-
-.team-card:active {
-  transform: scale(0.98);
-}
-
-.team-card-icon {
-  font-size: 27px;
-}
-
-.team-card h3 {
-  margin: 12px 0 5px;
-  font-size: 23px;
-  font-weight: 800;
-  color: #14213a;
-}
-
-.player-count {
-  font-size: 13px;
-  color: #6e788a;
-  margin: 0 0 16px;
-}
-
-.team-card > span {
-  color: #a77a19;
-  font-size: 12px;
-  font-weight: 700;
-}
-
-/* BUTTONS */
-
-.primary-btn {
-  width: 100%;
-  border: none;
-  background: #0057a8;
-  color: white;
-  border-radius: 9px;
-  padding: 13px 16px;
-  font-size: 14px;
-  font-weight: 800;
-  margin-top: 12px;
-}
-
-.primary-btn:hover {
-  background: #004582;
-}
-
-.back-btn {
-  background: white;
-  color: #25344b;
-  border: 1px solid #e1e5ec;
-  border-radius: 8px;
-  padding: 10px 14px;
-  font-size: 12px;
-  font-weight: 700;
   margin-bottom: 12px;
 }
 
-.view-btn {
-  background: #edf1f6;
-  color: #1b2b43;
-  border: none;
-  border-radius: 7px;
-  padding: 9px 13px;
-  font-size: 12px;
-  font-weight: 700;
-  white-space: nowrap;
+.menu-card strong {
+  display: block;
+  color: #102b50;
+  font-size: 13px;
 }
 
-/* PLAYER ROSTERS */
+.menu-card small {
+  display: block;
+  color: #8390a2;
+  margin-top: 7px;
+  font-size: 11px;
+}
+
+/* --------------------------------
+   TEAM CARDS
+-------------------------------- */
+
+.team-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+
+.team-card {
+  border: 1px solid #dce4ef;
+  border-radius: 12px;
+  padding: 20px 14px;
+  text-align: center;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.team-card-icon {
+  font-size: 25px;
+}
+
+.team-card h3 {
+  color: #102b50;
+  margin: 9px 0 5px;
+}
+
+.player-count {
+  color: #2877cf;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.team-card span {
+  color: #778397;
+  font-size: 11px;
+}
+
+/* --------------------------------
+   ROSTER AND PLAYER CARDS
+-------------------------------- */
 
 .roster-list {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  margin-top: 15px;
 }
 
 .player-card {
-  background: white;
-  border: 1px solid #e7eaf0;
-  border-radius: 12px;
-  padding: 15px;
   display: flex;
   align-items: center;
-  gap: 13px;
-  box-shadow: 0 2px 8px #14213a07;
-  transition: border-color 0.2s ease;
-}
-
-.player-card:hover {
-  border-color: #c69a35;
+  gap: 14px;
+  padding: 13px;
+  border: 1px solid #e2e8f0;
+  border-radius: 11px;
+  background: #fff;
 }
 
 .player-number {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  background: #14213a;
-  color: #d4aa4c;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 800;
-  font-size: 14px;
+  width: 43px;
+  height: 43px;
   flex-shrink: 0;
-  text-align: center;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: #eaf2fc;
+  color: #175ca6;
+  font-size: 17px;
+  font-weight: 800;
 }
 
-/* PLAYER INFORMATION */
-
 .player-info {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
   flex: 1;
   min-width: 0;
 }
 
 .player-info strong {
-  font-size: 13px;
-  overflow-wrap: anywhere;
+  display: block;
+  color: #172b49;
+  font-size: 14px;
 }
 
 .player-info small {
+  display: block;
+  color: #8390a2;
   font-size: 11px;
-  color: #8993a3;
+  margin-top: 4px;
 }
 
-.empty-state {
-  background: white;
-  border: 1px dashed #dce1e8;
-  border-radius: 12px;
-  padding: 20px;
-  color: #8993a3;
-  font-size: 13px;
-  text-align: center;
+.view-btn {
+  border: none;
+  background: #eaf2fc;
+  color: #175ca6;
+  padding: 9px 12px;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 700;
 }
 
-/* GROUPED PLAYER PROFILES */
+/* --------------------------------
+   PROFILE GROUPS
+-------------------------------- */
 
 .profile-team-section {
-  margin-top: 30px;
+  margin-bottom: 25px;
 }
 
 .profile-team-heading {
+  background: #102b50;
+  color: #fff;
+  border-radius: 10px 10px 0 0;
+  padding: 15px 18px;
   display: flex;
-  align-items: center;
   justify-content: space-between;
+  align-items: center;
   gap: 10px;
-  margin-bottom: 14px;
-  padding-bottom: 13px;
-  border-bottom: 2px solid #0057a8;
 }
 
 .profile-team-heading h3 {
   margin: 0;
-  color: #14213a;
-  font-size: 17px;
-  font-weight: 800;
+  font-size: 15px;
 }
 
 .profile-team-heading small {
   display: block;
-  color: #8993a3;
+  color: #c7d3e3;
+  margin-top: 4px;
   font-size: 10px;
-  margin-top: 5px;
 }
 
-.profile-team-heading > span {
-  background: #14213a;
-  color: #d4aa4c;
-  padding: 7px 11px;
-  border-radius: 20px;
+.profile-team-heading span {
   font-size: 10px;
-  font-weight: 800;
-  white-space: nowrap;
+  font-weight: 700;
+  color: #e5c66d;
 }
 
-/* INDIVIDUAL PLAYER PROFILE */
+.profile-team-section .roster-list {
+  padding: 12px;
+  border: 1px solid #e0e6ef;
+  border-top: none;
+  border-radius: 0 0 10px 10px;
+}
+
+/* --------------------------------
+   PLAYER PROFILE
+-------------------------------- */
 
 .player-profile {
-  background: white;
-  border-radius: 16px;
+  max-width: 650px;
+  margin: 0 auto;
+  border: 1px solid #e0e6ef;
+  border-radius: 14px;
   overflow: hidden;
-  border: 1px solid #e5e9ef;
-  box-shadow: 0 5px 20px #14213a0d;
-  margin-top: 15px;
 }
 
 .player-profile-banner {
-  background: #101b30;
-  color: white;
-  padding: 35px 20px;
+  background: #102b50;
+  color: #fff;
   text-align: center;
+  padding: 28px;
 }
 
 .football-avatar {
-  width: 85px;
-  height: 85px;
-  background: #263750;
-  border: 3px solid #c69a35;
-  border-radius: 50%;
-  margin: auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 38px;
+  font-size: 42px;
 }
 
 .player-profile-banner h2 {
-  color: white;
-  font-size: 23px;
-  margin: 17px 0 10px;
+  margin: 10px 0;
 }
 
 .team-badge {
   display: inline-block;
-  background: #c69a35;
-  color: #101b30;
-  padding: 6px 16px;
+  background: #e5c66d;
+  color: #102b50;
+  padding: 6px 13px;
   border-radius: 20px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
 }
 
@@ -443,484 +606,358 @@ h3 {
 }
 
 .player-profile-content h3 {
-  margin: 0 0 20px;
-  font-size: 17px;
+  color: #102b50;
 }
 
 .profile-field {
-  padding: 15px 0;
-  border-bottom: 1px solid #edf0f4;
+  padding: 12px 0;
+  border-bottom: 1px solid #edf0f5;
 }
 
 .profile-field label {
-  display: block;
-  font-size: 11px;
-  font-weight: 700;
-  color: #8993a3;
-  text-transform: uppercase;
-  margin-bottom: 8px;
+  margin: 0 0 7px;
+  color: #8490a0;
 }
 
-.profile-field > div,
-.profile-field input,
-.profile-field select {
-  font-size: 14px;
+.profile-field div {
+  color: #172b49;
   font-weight: 600;
-  color: #172033;
+  font-size: 14px;
 }
 
-.profile-field input,
-.profile-field select {
-  width: 100%;
-  padding: 12px;
-  border: 1px solid #dfe4eb;
-  border-radius: 8px;
-  background: #f9fafc;
-}
-
-.profile-value {
-  padding: 5px 0;
-}
-
-.parent-note {
-  color: #8993a3;
-  font-size: 12px;
-  margin-top: 20px;
-}
-
-/* ACTIVITIES */
+/* --------------------------------
+   ACTIVITY FORM AND CARDS
+-------------------------------- */
 
 .activity-card {
-  background: white;
-  border: 1px solid #e1e7ef;
-  border-left: 4px solid #0057a8;
-  border-radius: 13px;
-  padding: 0;
-  margin: 16px 0;
-  overflow: hidden;
-  box-shadow: 0 3px 12px #14213a08;
+  background: #fff;
+  border: 1px solid #dce4ef;
+  border-radius: 12px;
+  padding: 18px;
+  margin-bottom: 15px;
 }
 
 .activity-card h3 {
-  margin: 0 0 10px;
+  color: #102b50;
+  margin: 0 0 15px;
 }
 
-.activity-card p {
-  color: #748094;
-  font-size: 12px;
-  margin: 6px 0;
+.activity-section {
+  margin-top: 25px;
 }
 
-.activity-card details {
-  width: 100%;
+.publish-option {
+  display: flex;
+  align-items: center;
+  gap: 9px;
 }
 
-.activity-card summary {
-  list-style: none;
-  cursor: pointer;
-  padding: 18px;
+.publish-option input {
+  width: auto;
+  min-height: auto;
+}
+
+.collapsible-activity {
+  padding: 0;
+  overflow: hidden;
+}
+
+.activity-summary {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  background: white;
+  padding: 17px;
+  cursor: pointer;
+  list-style: none;
 }
 
-.activity-card summary::-webkit-details-marker {
+.activity-summary::-webkit-details-marker {
   display: none;
 }
 
-.activity-card summary::after {
-  content: '+';
-  color: #0057a8;
-  font-size: 24px;
-  font-weight: 600;
-  flex-shrink: 0;
+.activity-summary-main {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  min-width: 0;
 }
 
-.activity-card details[open] summary::after {
-  content: '−';
+.activity-type-icon {
+  width: 43px;
+  height: 43px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  background: #eaf2fc;
+  border-radius: 10px;
+  font-size: 21px;
 }
 
 .activity-summary-info {
   min-width: 0;
-  flex: 1;
 }
 
 .activity-summary-info strong {
   display: block;
-  color: #14213a;
-  font-size: 15px;
-  font-weight: 800;
+  color: #102b50;
+  font-size: 14px;
 }
 
 .activity-summary-info small {
   display: block;
-  color: #788397;
+  color: #7d899a;
   font-size: 11px;
-  margin-top: 6px;
+  margin-top: 4px;
+}
+
+.collapse-arrow {
+  color: #2877cf;
+  font-size: 22px;
+  transition: transform 0.2s;
+}
+
+.collapsible-activity[open] .collapse-arrow {
+  transform: rotate(180deg);
 }
 
 .activity-content {
-  padding: 0 18px 18px;
-  border-top: 1px solid #edf0f4;
+  border-top: 1px solid #edf0f5;
+  padding: 18px;
 }
 
-.activity-content h3 {
-  padding-top: 15px;
+.activity-meta {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 15px;
 }
 
-.activity-team-badge {
-  display: inline-block;
-  background: #e8f1fb;
-  color: #0057a8;
-  border-radius: 20px;
-  padding: 5px 10px;
-  font-size: 10px;
-  font-weight: 800;
-  margin-top: 7px;
-}
-
-.activity-section {
-  margin-top: 28px;
-}
-
-.activity-section-heading {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 10px;
-  border-bottom: 2px solid #0057a8;
-  padding-bottom: 11px;
-  margin-bottom: 15px;
-}
-
-.activity-section-heading h3 {
-  margin: 0;
-  color: #14213a;
-  font-size: 18px;
-  font-weight: 800;
-}
-
-.activity-section-heading small {
-  color: #8993a3;
+.activity-meta label {
+  color: #8591a2;
+  margin: 0 0 5px;
   font-size: 11px;
 }
 
-/* CREATE ACTIVITY FORM */
-
-.activity-form {
-  background: white;
-  border: 1px solid #e5e9ef;
-  border-radius: 14px;
-  padding: 20px;
-  margin: 20px 0 28px;
-  box-shadow: 0 3px 12px #14213a08;
-}
-
-.activity-form h3 {
-  margin: 0 0 17px;
-  color: #14213a;
-}
-
-.activity-form label {
+.activity-meta strong {
   display: block;
-  color: #596579;
-  font-size: 12px;
-  font-weight: 700;
-  margin: 13px 0 7px;
-}
-
-.activity-form input,
-.activity-form select,
-.activity-form textarea {
-  display: block;
-  width: 100%;
-  padding: 12px;
-  border: 1px solid #dfe4eb;
-  border-radius: 8px;
-  background: #f9fafc;
-  color: #172033;
+  color: #172b49;
   font-size: 13px;
 }
 
-.activity-form input:focus,
-.activity-form select:focus,
-.activity-form textarea:focus {
-  outline: none;
-  border-color: #0057a8;
-  box-shadow: 0 0 0 3px #0057a81a;
+.attendance-summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin: 20px 0;
 }
 
-.activity-form textarea {
-  min-height: 75px;
-  resize: vertical;
+.attendance-stat {
+  text-align: center;
+  padding: 13px 6px;
+  background: #f3f7fc;
+  border-radius: 9px;
 }
 
-/* ATTENDANCE */
+.attendance-stat strong {
+  display: block;
+  color: #175ca6;
+  font-size: 21px;
+}
 
-.attendance-row {
+.attendance-stat small {
+  color: #7c899b;
+  font-size: 10px;
+}
+
+.activity-content h4 {
+  color: #102b50;
+  margin: 20px 0 12px;
+}
+
+.attendance-player {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  padding: 13px 0 8px;
-  border-top: 1px solid #edf0f4;
-  margin-top: 12px;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid #edf0f5;
+  flex-wrap: wrap;
 }
 
-.attendance-row strong {
-  font-size: 12px;
+.attendance-player-info {
+  flex: 1;
+  min-width: 110px;
+}
+
+.attendance-player-info strong {
+  display: block;
+  color: #172b49;
+  font-size: 13px;
+}
+
+.attendance-player-info small {
+  color: #8b97a6;
+  font-size: 11px;
+}
+
+.attendance-controls {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
 }
 
 .attendance-select {
-  background: #f4f6f9;
-  border: 1px solid #dce1e8;
-  border-radius: 7px;
-  padding: 9px;
+  width: 115px;
+  min-height: 36px;
   font-size: 12px;
-  max-width: 140px;
 }
 
 .absence-reason {
-  width: 100%;
-  margin-top: 5px;
-  margin-bottom: 8px;
-  padding: 10px;
-  border: 1px solid #e2e6ed;
-  border-radius: 7px;
-  font-size: 12px;
+  width: 180px;
+  min-height: 36px;
+  font-size: 11px;
 }
 
-/* DELETE ACTIVITY */
+.small-save-btn {
+  background: #1764ad;
+  color: #fff;
+  border: none;
+  border-radius: 7px;
+  padding: 9px 11px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.attendance-status {
+  border-radius: 20px;
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.status-yes {
+  color: #16764a;
+  background: #e6f6ee;
+}
+
+.status-no {
+  color: #b43d3d;
+  background: #fff0f0;
+}
+
+.status-pending {
+  color: #8b6c19;
+  background: #fff7df;
+}
+
+.absence-note {
+  width: 100%;
+  color: #9a6870;
+  font-size: 11px;
+}
+
+.activity-admin-actions {
+  border-top: 1px solid #edf0f5;
+  margin-top: 15px;
+  padding-top: 15px;
+  text-align: right;
+}
 
 .delete-btn {
-  display: inline-block;
-  background: #fff1f1;
-  color: #c62828;
-  border: 1px solid #f1caca;
-  border-radius: 7px;
+  background: #fff0f0;
+  color: #b43d3d;
+  border: 1px solid #f3cccc;
+  border-radius: 8px;
   padding: 9px 13px;
   font-size: 12px;
   font-weight: 700;
-  margin-top: 15px;
 }
 
-.delete-btn:hover {
-  background: #ffe0e0;
-}
+/* --------------------------------
+   EMPTY STATES
+-------------------------------- */
 
-/* PAST ACTIVITIES */
-
-.past-activities .activity-card {
-  border-left-color: #8993a3;
-}
-
-.past-activities .activity-card summary {
-  background: #fafbfc;
-}
-
-/* LOGIN */
-
-.login-container {
-  width: calc(100% - 36px);
-  max-width: 430px;
-  margin: auto;
-  padding: 30px 23px;
-  background: white;
-  border-radius: 17px;
-  box-shadow: 0 8px 30px #14213a12;
-}
-
-.login-logo {
-  display: block;
-  width: 155px;
-  height: 155px;
-  object-fit: contain;
-  margin: 0 auto 18px;
-}
-
-.login-container h1 {
-  color: #14213a;
-  font-size: 25px;
-  font-weight: 800;
-  line-height: 1.2;
+.empty-state {
+  background: #f7f9fc;
+  color: #8490a0;
   text-align: center;
-  margin-top: 5px;
-}
-
-.login-container h2 {
-  color: #14213a;
-  text-align: center;
-  font-size: 21px;
-  margin-top: 25px;
-}
-
-.login-container h3 {
-  color: #14213a;
-  text-align: center;
-  margin-top: 30px;
-}
-
-.login-container p {
-  color: #8490a1;
-  font-size: 13px;
-  margin-bottom: 25px;
-  text-align: center;
-}
-
-.login-container input {
-  width: 100%;
-  padding: 13px;
-  margin: 7px 0;
-  border: 1px solid #dfe4eb;
-  border-radius: 8px;
-  font-size: 14px;
-}
-
-/* FORGOT PASSWORD */
-
-.login-container a {
-  display: block;
-  text-align: center;
-  margin-top: 20px;
-  color: #0057a8;
-  font-size: 12px;
-  font-weight: 700;
-  text-decoration: none;
-}
-
-.login-container a:hover {
-  color: #004582;
-  text-decoration: underline;
-}
-
-/* LOGIN OPTIONS */
-
-.login-options {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-  margin-top: 30px;
-}
-
-.login-options button {
-  width: 100%;
-  min-height: 65px;
-  font-size: 16px;
-  font-weight: 800;
+  padding: 25px 15px;
+  border: 1px dashed #d8e0eb;
   border-radius: 10px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  background: #0057a8;
-  color: white;
-  border: none;
+  font-size: 13px;
 }
 
-.login-options button:hover {
-  background: #004582;
-}
+/* --------------------------------
+   MOBILE
+-------------------------------- */
 
-.login-options button:active {
-  transform: scale(0.98);
-}
-
-/* LOGIN FORM BUTTON */
-
-.login-container button[type="submit"] {
-  width: 100%;
-  background: #0057a8;
-  color: white;
-  border: none;
-  border-radius: 9px;
-  padding: 13px 16px;
-  margin-top: 12px;
-  font-size: 14px;
-  font-weight: 800;
-  transition: background 0.2s ease;
-}
-
-.login-container button[type="submit"]:hover {
-  background: #004582;
-}
-
-.login-container button[type="submit"]:active {
-  transform: scale(0.98);
-}
-
-.login-container .back-btn {
-  margin-top: 25px;
-  width: 100%;
-}
-
-#login-error {
-  color: #d33;
-  font-size: 12px;
-  text-align: center;
-  margin-top: 12px;
-}
-
-/* TABLET AND DESKTOP */
-
-@media (min-width: 650px) {
-  .container {
-    padding: 35px 32px 60px;
-  }
-
-  .menu-grid {
-    grid-template-columns: repeat(4, 1fr);
-  }
-
-  .team-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .team-card {
-    padding: 25px;
-  }
-
-  .player-profile {
-    max-width: 600px;
-    margin-left: auto;
-    margin-right: auto;
-  }
-}
-
-/* MOBILE: KEEP THE PORTAL CONTAINED */
-
-@media (max-width: 600px) {
+@media (max-width: 700px) {
   #app {
-    min-height: 100vh;
     padding: 18px 12px;
-    justify-content: flex-start;
+  }
+
+  .login-page {
+    min-height: calc(100vh - 36px);
+    padding: 10px 0;
+  }
+
+  .login-card {
+    max-width: 480px;
+    border-radius: 16px;
+  }
+
+  .login-brand {
+    padding: 23px 16px;
+  }
+
+  .login-logo {
+    width: 82px;
+    height: 82px;
+  }
+
+  .login-brand h1 {
+    font-size: 18px;
+  }
+
+  .login-choice-content,
+  .login-form-content {
+    padding: 24px 17px;
+  }
+
+  .login-choice-grid {
+    gap: 9px;
+  }
+
+  .login-choice {
+    min-height: 160px;
+    padding: 13px 11px;
+  }
+
+  .login-choice strong {
+    font-size: 12px;
+  }
+
+  .login-choice small {
+    font-size: 10px;
   }
 
   .topbar {
-    width: 100%;
     max-width: 480px;
-    padding: 13px 12px;
+    padding: 12px 14px;
     border-radius: 13px 13px 0 0;
   }
 
-  .container {
-    width: 100%;
-    max-width: 480px;
-    min-height: 650px;
-    padding: 22px 16px 40px;
-    border-radius: 0 0 13px 13px;
-    box-shadow: 0 8px 25px #14213a12;
-  }
-
   .portal-logo {
-    width: 43px;
-    height: 43px;
+    width: 39px;
+    height: 39px;
   }
 
   .brand-name {
     font-size: 13px;
   }
 
-  .topbar small {
+  .brand small {
     font-size: 10px;
   }
 
@@ -929,87 +966,33 @@ h3 {
     font-size: 11px;
   }
 
-  .login-container {
-    width: 100%;
-    max-width: 400px;
-    padding: 25px 18px;
-    margin: auto;
-  }
-
-  .login-logo {
-    width: 125px;
-    height: 125px;
-  }
-
-  .activity-form {
-    padding: 16px;
-  }
-
-  .activity-card summary {
-    padding: 15px;
-  }
-
-  .activity-content {
-    padding: 0 15px 15px;
-  }
-
-  .activity-summary-info strong {
-    font-size: 14px;
+  .container {
+    max-width: 480px;
+    padding: 20px 15px;
+    border-radius: 0 0 13px 13px;
   }
 
   .menu-grid {
+    grid-template-columns: repeat(2, 1fr);
     gap: 10px;
   }
 
   .team-grid {
+    grid-template-columns: repeat(2, 1fr);
     gap: 10px;
   }
-}
 
-/* SMALL PHONES */
-
-@media (max-width: 380px) {
-  #app {
-    padding: 12px 8px;
-  }
-
-  .topbar {
-    padding: 12px 9px;
-  }
-
-  .container {
-    padding: 20px 12px 35px;
-  }
-
-  .brand {
-    gap: 8px;
-  }
-
-  .brand-name {
-    font-size: 12px;
-  }
-
-  .portal-logo {
-    width: 38px;
-    height: 38px;
-  }
-
-  .logout-btn {
-    padding: 7px 8px;
-    font-size: 10px;
-  }
-
-  .team-card {
+  .menu-card {
     padding: 15px 12px;
   }
 
-  .team-card h3 {
-    font-size: 20px;
+  .team-card {
+    padding: 16px 10px;
   }
 
   .player-card {
-    padding: 12px;
-    gap: 9px;
+    gap: 10px;
+    padding: 10px;
   }
 
   .view-btn {
@@ -1017,17 +1000,71 @@ h3 {
     font-size: 11px;
   }
 
-  .login-options button {
-    font-size: 14px;
+  .activity-card {
+    padding: 14px;
   }
 
-  .attendance-row {
+  .collapsible-activity {
+    padding: 0;
+  }
+
+  .activity-summary {
+    padding: 13px;
+  }
+
+  .activity-content {
+    padding: 13px;
+  }
+
+  .attendance-player {
     align-items: flex-start;
-    flex-direction: column;
+  }
+
+  .attendance-controls {
+    width: 100%;
   }
 
   .attendance-select {
-    max-width: 100%;
+    flex: 1;
+  }
+
+  .absence-reason {
     width: 100%;
+  }
+}
+
+@media (max-width: 380px) {
+  #app {
+    padding: 12px 8px;
+  }
+
+  .login-choice-content,
+  .login-form-content {
+    padding: 20px 12px;
+  }
+
+  .login-choice {
+    min-height: 165px;
+    padding: 11px 9px;
+  }
+
+  .login-choice strong {
+    font-size: 11px;
+  }
+
+  .login-choice small {
+    font-size: 9px;
+  }
+
+  .container {
+    padding: 17px 11px;
+  }
+
+  .brand-name {
+    font-size: 12px;
+  }
+
+  .activity-meta {
+    gap: 12px;
   }
 }
