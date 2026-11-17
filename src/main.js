@@ -13,7 +13,8 @@ let children = []
 let activities = []
 let responses = []
 let activePlayer = null
-let currentTab = 'activities'
+let currentTab = 'home'
+let parentSubTab = 'activities'
 let recoveryMode = false
 
 const esc = (v='') => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))
@@ -33,6 +34,48 @@ const isStaff = () => ['admin','coach'].includes(profile?.role)
 
 const responseFor = (activityId, playerId) =>
   responses.find(r=>r.activity_id===activityId && r.player_id===playerId)
+
+// EXTRA STYLING FOR THE NEW PARENT PORTAL
+function addPortalStyles(){
+  if(document.querySelector('#portalStyles'))return
+
+  const style=document.createElement('style')
+  style.id='portalStyles'
+  style.textContent=`
+    .portal-welcome{margin-bottom:22px}
+    .portal-menu{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:20px 0}
+    .portal-menu-card{background:var(--card,#fff);border:1px solid var(--border,#e5e7eb);border-radius:16px;padding:20px;text-align:left;cursor:pointer;color:inherit;min-height:145px;transition:transform .15s,border-color .15s}
+    .portal-menu-card:hover{transform:translateY(-2px);border-color:#b89a58}
+    .portal-menu-icon{font-size:28px;margin-bottom:12px}
+    .portal-menu-card h2{font-size:17px;margin:0 0 7px}
+    .portal-menu-card p{font-size:13px;color:var(--muted,#777);margin:0;line-height:1.5}
+    .portal-back{margin-bottom:18px}
+    .profile-banner{background:#172d50;color:white;border-radius:16px;padding:22px;margin-bottom:16px}
+    .profile-avatar{width:76px;height:76px;border-radius:50%;background:#ffffff22;border:2px solid #ffffff66;display:flex;align-items:center;justify-content:center;font-size:30px;margin-bottom:14px}
+    .profile-details{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+    .profile-detail{background:var(--card,#fff);border:1px solid var(--border,#e5e7eb);border-radius:12px;padding:14px}
+    .profile-detail small{display:block;color:var(--muted,#777);margin-bottom:6px}
+    .profile-detail b{font-size:15px}
+    .placeholder-note{background:#f4f0e7;color:#66542c;padding:12px 14px;border-radius:10px;font-size:13px;margin-top:14px}
+    .video-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+    .video-frame{aspect-ratio:16/9;background:linear-gradient(135deg,#172d50,#344b69);border-radius:12px;display:flex;align-items:center;justify-content:center;color:white;font-size:32px;position:relative;overflow:hidden}
+    .video-frame:after{content:'COMING SOON';position:absolute;bottom:10px;left:0;right:0;text-align:center;font-size:10px;letter-spacing:2px;color:#ffffffbb}
+    .video-placeholder h3{font-size:14px;margin:9px 0 4px}
+    .video-placeholder p{font-size:12px;color:var(--muted,#777);margin:0}
+    .payment-placeholder{text-align:center;padding:28px 15px}
+    .payment-placeholder .payment-icon{font-size:42px;margin-bottom:12px}
+    .portal-section-title{margin:22px 0 12px}
+    .subtabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+    .subtabs button{border:1px solid var(--border,#ddd);background:transparent;border-radius:20px;padding:9px 15px;cursor:pointer}
+    .subtabs button.active{background:#172d50;color:white;border-color:#172d50}
+    @media(max-width:480px){
+      .portal-menu{gap:10px}
+      .portal-menu-card{padding:15px;min-height:135px}
+      .profile-details,.video-grid{grid-template-columns:1fr 1fr}
+    }
+  `
+  document.head.appendChild(style)
+}
 
 function shell(content='') {
   root.innerHTML = `
@@ -58,7 +101,10 @@ function shell(content='') {
     user=null
     profile=null
     children=[]
+    activities=[]
+    responses=[]
     recoveryMode=false
+    currentTab='home'
     renderLogin()
   })
 }
@@ -128,7 +174,6 @@ function renderLogin(message='') {
     await loadSession()
   })
 
-  // FORGOT PASSWORD
   document.querySelector('#forgotPassword').addEventListener('click', async()=>{
     const email=document.querySelector('#email').value.trim()
 
@@ -241,7 +286,13 @@ function renderResetPassword(){
 }
 
 async function loadSession() {
-  const {data:{user:current}}=await supabase.auth.getUser()
+  const {data:{user:current},error:userError}=await supabase.auth.getUser()
+
+  if(userError){
+    renderLogin(userError.message)
+    return
+  }
+
   user=current
 
   if(!user){
@@ -296,8 +347,14 @@ async function loadSession() {
   }
 
   profile=p
-  await loadData()
-  renderApp()
+  currentTab=isStaff()?'overview':'home'
+
+  try{
+    await loadData()
+    renderApp()
+  }catch(e){
+    shell(`<div class="card"><h2>Unable to load portal</h2><p>${esc(e.message)}</p></div>`)
+  }
 }
 
 async function loadData(){
@@ -307,6 +364,7 @@ async function loadData(){
   ])
 
   if(aRes.error)throw aRes.error
+  if(linkRes.error)throw linkRes.error
 
   activities=aRes.data||[]
 
@@ -321,8 +379,6 @@ async function loadData(){
     if(error)throw error
     children=p||[]
   }else{
-    if(linkRes.error)throw linkRes.error
-
     if(ids.length){
       const {data:p,error}=await supabase.from('players')
         .select('id,name,age_group')
@@ -346,41 +402,333 @@ async function loadData(){
   responses=r||[]
 }
 
+// MAIN APP ROUTER
 function renderApp(){
-  const staff=isStaff()
+  addPortalStyles()
 
-  const tabs=staff
-    ?[['overview','Availability'],['create','Publish activity'],['roster','U12 roster']]
-    :[['activities','Activities'],['history','My responses']]
+  if(isStaff()){
+    renderStaffApp()
+  }else{
+    renderParentApp()
+  }
+}
+
+// PARENT LANDING PAGE AND MENU
+function renderParentApp(){
+  if(currentTab==='home'){
+    renderParentHome()
+    return
+  }
+
+  const pageNames={
+    profile:'Player Profile',
+    attendance:'Attendance',
+    payment:'Payment',
+    videos:'Videos'
+  }
 
   shell(`
+    <div class="portal-back">
+      <button class="btn small" id="backHome">← Back to home</button>
+    </div>
     <div class="hero">
       <div>
-        <div class="eyebrow">${staff?'Coach & administrator':'Parent area'}</div>
-        <h1>${staff?'U12 attendance management':'Your child’s availability'}</h1>
-        <p class="sub">${staff?'Publish activities and review parent responses.':'Let the coaches know whether your child can attend.'}</p>
+        <div class="eyebrow">Gaulois Aerion · U12</div>
+        <h1>${pageNames[currentTab]||'Parent Portal'}</h1>
+        <p class="sub">${esc(profile?.full_name||'Parent account')}</p>
       </div>
       <span class="tag">GA U12</span>
     </div>
-
-    <nav class="tabs">
-      ${tabs.map(([id,label])=>`
-        <button class="tab ${currentTab===id?'active':''}" data-tab="${id}">${label}</button>
-      `).join('')}
-    </nav>
-
-    <section id="panel"></section>
+    <section id="parentPage"></section>
   `)
 
-  document.querySelectorAll('[data-tab]').forEach(b=>
-    b.addEventListener('click',()=>{
-      currentTab=b.dataset.tab
+  document.querySelector('#backHome').addEventListener('click',()=>{
+    currentTab='home'
+    renderApp()
+  })
+
+  if(currentTab==='profile')renderPlayerProfile()
+  if(currentTab==='attendance')renderAttendancePage()
+  if(currentTab==='payment')renderPaymentPage()
+  if(currentTab==='videos')renderVideosPage()
+}
+
+function renderParentHome(){
+  shell(`
+    <div class="portal-welcome">
+      <div class="eyebrow">Welcome to Gaulois Aerion</div>
+      <h1>Hello, ${esc(profile?.full_name||'Parent')}</h1>
+      <p class="sub">Your U12 family portal. What would you like to do today?</p>
+    </div>
+
+    ${!children.length?`
+      <div class="card empty">
+        <h2>No player linked yet</h2>
+        <p>Your account has been created, but the academy still needs to link it to your child. Please contact the coach.</p>
+      </div>
+    `:`
+      <div class="card">
+        <div class="sectionhead">
+          <h2>Your player${children.length>1?'s':''}</h2>
+          <span class="tag">U12</span>
+        </div>
+        ${children.map(p=>`
+          <div class="activity">
+            <b>${esc(p.name)}</b>
+            <p>${esc(p.age_group||'U12')}</p>
+          </div>
+        `).join('')}
+      </div>
+    `}
+
+    <h2 class="portal-section-title">Portal menu</h2>
+
+    <div class="portal-menu">
+      <button class="portal-menu-card" data-page="profile">
+        <div class="portal-menu-icon">👤</div>
+        <h2>Player Profile</h2>
+        <p>Player details and academy information</p>
+      </button>
+
+      <button class="portal-menu-card" data-page="attendance">
+        <div class="portal-menu-icon">📅</div>
+        <h2>Attendance</h2>
+        <p>Confirm training and match availability</p>
+      </button>
+
+      <button class="portal-menu-card" data-page="payment">
+        <div class="portal-menu-icon">💳</div>
+        <h2>Payment</h2>
+        <p>Academy fees and payment records</p>
+      </button>
+
+      <button class="portal-menu-card" data-page="videos">
+        <div class="portal-menu-icon">🎬</div>
+        <h2>Videos</h2>
+        <p>Match footage and player highlights</p>
+      </button>
+    </div>
+  `)
+
+  document.querySelectorAll('[data-page]').forEach(button=>{
+    button.addEventListener('click',()=>{
+      currentTab=button.dataset.page
       renderApp()
     })
+  })
+}
+
+// PLAYER PROFILE MOCK-UP
+function renderPlayerProfile(){
+  const panel=document.querySelector('#parentPage')
+
+  if(!children.length){
+    panel.innerHTML='<div class="card empty"><h2>No player linked</h2><p>Please contact the academy.</p></div>'
+    return
+  }
+
+  const player=children.find(p=>p.id===activePlayer)||children[0]
+
+  panel.innerHTML=`
+    <div class="card childselect">
+      <div class="field">
+        <label>Select player</label>
+        <select id="profilePlayerSelect">
+          ${children.map(p=>`
+            <option value="${p.id}" ${p.id===player.id?'selected':''}>${esc(p.name)}</option>
+          `).join('')}
+        </select>
+      </div>
+    </div>
+
+    <div class="profile-banner">
+      <div class="profile-avatar">⚽</div>
+      <div class="eyebrow">Gaulois Aerion Academy</div>
+      <h2>${esc(player.name)}</h2>
+      <p>${esc(player.age_group||'U12')} · Academy Player</p>
+    </div>
+
+    <div class="card">
+      <h2>Player information</h2>
+      <div class="profile-details">
+        <div class="profile-detail"><small>Full name</small><b>${esc(player.name)}</b></div>
+        <div class="profile-detail"><small>Age group</small><b>${esc(player.age_group||'U12')}</b></div>
+        <div class="profile-detail"><small>Jersey number</small><b>To be updated</b></div>
+        <div class="profile-detail"><small>Position</small><b>To be updated</b></div>
+        <div class="profile-detail"><small>Date of birth</small><b>To be updated</b></div>
+        <div class="profile-detail"><small>Team</small><b>Gaulois Aerion U12</b></div>
+      </div>
+      <div class="placeholder-note">
+        This is a profile mock-up. Player details and photo can be added by the academy in a future update.
+      </div>
+    </div>
+  `
+
+  document.querySelector('#profilePlayerSelect').addEventListener('change',e=>{
+    activePlayer=e.target.value
+    renderPlayerProfile()
+  })
+}
+
+// ATTENDANCE PAGE - EXISTING ATTENDANCE FUNCTIONALITY
+function renderAttendancePage(){
+  const panel=document.querySelector('#parentPage')
+
+  if(!children.length){
+    panel.innerHTML=`
+      <div class="card empty">
+        <h2>No player linked yet</h2>
+        <p>Your account has been created, but the academy still needs to link it to your child. Please contact the coach.</p>
+      </div>
+    `
+    return
+  }
+
+  panel.innerHTML=`
+    <div class="card childselect">
+      <div class="sectionhead">
+        <h2>Linked player</h2>
+        <span class="tag">Family account</span>
+      </div>
+
+      <div class="field">
+        <label>Select your child</label>
+        <select id="childSelect">
+          ${children.map(p=>`
+            <option value="${p.id}" ${p.id===activePlayer?'selected':''}>${esc(p.name)}</option>
+          `).join('')}
+        </select>
+      </div>
+    </div>
+
+    <div class="subtabs">
+      <button class="${parentSubTab==='activities'?'active':''}" data-subtab="activities">Activities</button>
+      <button class="${parentSubTab==='history'?'active':''}" data-subtab="history">My responses</button>
+    </div>
+
+    <section id="attendanceContent"></section>
+  `
+
+  document.querySelector('#childSelect').addEventListener('change',e=>{
+    activePlayer=e.target.value
+    renderAttendancePage()
+  })
+
+  document.querySelectorAll('[data-subtab]').forEach(button=>{
+    button.addEventListener('click',()=>{
+      parentSubTab=button.dataset.subtab
+      renderAttendancePage()
+    })
+  })
+
+  const content=document.querySelector('#attendanceContent')
+
+  if(parentSubTab==='history'){
+    const rows=responses.filter(r=>children.some(p=>p.id===r.player_id))
+
+    content.innerHTML=`
+      <div class="card">
+        <h2>My response history</h2>
+        ${rows.length?rows.map(r=>{
+          const a=activities.find(x=>x.id===r.activity_id)
+          const p=children.find(x=>x.id===r.player_id)
+
+          return a&&p?`
+            <div class="activity">
+              <div class="activitytop">
+                <b>${esc(p.name)} · ${esc(a.title)}</b>
+                ${statusTag(r.answer)}
+              </div>
+              <p>${dateLabel(a.activity_date)}</p>
+              <p>${r.absence_reason?`Reason: ${esc(r.absence_reason)}`:'No reason supplied'}</p>
+            </div>
+          `:''
+        }).join(''):'<div class="empty">No responses submitted yet.</div>'}
+      </div>
+    `
+    return
+  }
+
+  const player=children.find(p=>p.id===activePlayer)
+  const published=activities.filter(a=>a.is_published)
+
+  content.innerHTML=`
+    <div class="grid">
+      ${published.length
+        ?published.map(a=>activityCard(a,player)).join('')
+        :'<div class="card span12 empty">No activities have been published yet.</div>'}
+    </div>
+  `
+
+  document.querySelectorAll('[data-answer]').forEach(b=>
+    b.addEventListener('click',()=>saveAnswer(
+      b.dataset.activity,
+      b.dataset.player,
+      b.dataset.answer
+    ))
   )
 
-  if(staff)renderStaffPanel()
-  else renderParentPanel()
+  document.querySelectorAll('[data-reason]').forEach(b=>
+    b.addEventListener('click',()=>saveReason(
+      b.dataset.reason,
+      b.dataset.player
+    ))
+  )
+}
+
+// PAYMENT PLACEHOLDER
+function renderPaymentPage(){
+  const panel=document.querySelector('#parentPage')
+
+  panel.innerHTML=`
+    <div class="card">
+      <div class="payment-placeholder">
+        <div class="payment-icon">💳</div>
+        <h2>Payment & Fees</h2>
+        <p class="sub">Your academy payment information will be available here.</p>
+        <span class="tag">Coming soon</span>
+      </div>
+    </div>
+
+    <div class="card spacetop">
+      <h2>Payment information</h2>
+      <div class="profile-details">
+        <div class="profile-detail"><small>Player</small><b>${children.length?esc(children.map(p=>p.name).join(', ')):'Not linked'}</b></div>
+        <div class="profile-detail"><small>Payment status</small><b>To be updated</b></div>
+        <div class="profile-detail"><small>Outstanding fees</small><b>To be updated</b></div>
+        <div class="profile-detail"><small>Payment history</small><b>Coming soon</b></div>
+      </div>
+      <div class="placeholder-note">
+        No payments can be made or recorded through this page yet. This is a visual placeholder for a future payment feature.
+      </div>
+    </div>
+  `
+}
+
+// VIDEOS PAGE - PLACEHOLDER FRAMES ONLY
+function renderVideosPage(){
+  const panel=document.querySelector('#parentPage')
+
+  panel.innerHTML=`
+    <div class="card">
+      <h2>Player Videos</h2>
+      <p class="sub">Match footage, training clips and player highlights will appear here.</p>
+
+      <div class="video-grid">
+        ${['Match Highlights','Training Footage','Player Highlights','Academy Moments'].map(title=>`
+          <div class="video-placeholder">
+            <div class="video-frame">▶</div>
+            <h3>${title}</h3>
+            <p>No video uploaded yet</p>
+          </div>
+        `).join('')}
+      </div>
+
+      <div class="placeholder-note">
+        These are empty placeholder frames only. No videos are currently uploaded or embedded.
+      </div>
+    </div>
+  `
 }
 
 function statusTag(answer){
@@ -426,92 +774,6 @@ function activityCard(a,player){
   `
 }
 
-function renderParentPanel(){
-  const panel=document.querySelector('#panel')
-
-  if(!children.length){
-    panel.innerHTML=`
-      <div class="card empty">
-        <h2>No player linked yet</h2>
-        <p>Your account has been created, but the academy still needs to link it to your child. Please contact the coach.</p>
-      </div>
-    `
-    return
-  }
-
-  if(currentTab==='history'){
-    const rows=responses.filter(r=>children.some(p=>p.id===r.player_id))
-
-    panel.innerHTML=`
-      <div class="card">
-        <h2>My response history</h2>
-        ${rows.length?rows.map(r=>{
-          const a=activities.find(x=>x.id===r.activity_id)
-          const p=children.find(x=>x.id===r.player_id)
-
-          return a&&p?`
-            <div class="activity">
-              <div class="activitytop">
-                <b>${esc(p.name)} · ${esc(a.title)}</b>
-                ${statusTag(r.answer)}
-              </div>
-              <p>${dateLabel(a.activity_date)}</p>
-              <p>${r.absence_reason?`Reason: ${esc(r.absence_reason)}`:'No reason supplied'}</p>
-            </div>
-          `:''
-        }).join(''):'<div class="empty">No responses submitted yet.</div>'}
-      </div>
-    `
-    return
-  }
-
-  const published=activities.filter(a=>a.is_published)
-
-  panel.innerHTML=`
-    <div class="card childselect">
-      <div class="sectionhead">
-        <h2>Linked player</h2>
-        <span class="tag">Family account</span>
-      </div>
-
-      <div class="field">
-        <label>Select your child</label>
-        <select id="childSelect">
-          ${children.map(p=>`
-            <option value="${p.id}" ${p.id===activePlayer?'selected':''}>${esc(p.name)}</option>
-          `).join('')}
-        </select>
-      </div>
-    </div>
-
-    <div class="grid">
-      ${published.length
-        ?published.map(a=>activityCard(a,children.find(p=>p.id===activePlayer))).join('')
-        :'<div class="card span12 empty">No activities have been published yet.</div>'}
-    </div>
-  `
-
-  document.querySelector('#childSelect').addEventListener('change',e=>{
-    activePlayer=e.target.value
-    renderApp()
-  })
-
-  document.querySelectorAll('[data-answer]').forEach(b=>
-    b.addEventListener('click',()=>saveAnswer(
-      b.dataset.activity,
-      b.dataset.player,
-      b.dataset.answer
-    ))
-  )
-
-  document.querySelectorAll('[data-reason]').forEach(b=>
-    b.addEventListener('click',()=>saveReason(
-      b.dataset.reason,
-      b.dataset.player
-    ))
-  )
-}
-
 async function saveAnswer(activity_id,player_id,answer){
   const payload={
     activity_id,
@@ -537,7 +799,10 @@ async function saveReason(activity_id,player_id){
   const old=responseFor(activity_id,player_id)
   if(!old)return
 
-  const absence_reason=document.querySelector(`#reason-${CSS.escape(activity_id)}`).value
+  const textarea=document.querySelector(`#reason-${CSS.escape(activity_id)}`)
+  if(!textarea)return
+
+  const absence_reason=textarea.value
 
   const {error}=await supabase.from('responses')
     .update({absence_reason,responded_by:user.id})
@@ -551,6 +816,45 @@ async function saveReason(activity_id,player_id){
   await loadData()
   renderApp()
   toast('Optional reason saved')
+}
+
+// STAFF / ADMIN DASHBOARD
+function renderStaffApp(){
+  const tabs=[
+    ['overview','Availability'],
+    ['create','Publish activity'],
+    ['roster','U12 roster']
+  ]
+
+  if(!tabs.some(([id])=>id===currentTab))currentTab='overview'
+
+  shell(`
+    <div class="hero">
+      <div>
+        <div class="eyebrow">Coach & administrator</div>
+        <h1>U12 attendance management</h1>
+        <p class="sub">Publish activities and review parent responses.</p>
+      </div>
+      <span class="tag">GA U12</span>
+    </div>
+
+    <nav class="tabs">
+      ${tabs.map(([id,label])=>`
+        <button class="tab ${currentTab===id?'active':''}" data-tab="${id}">${label}</button>
+      `).join('')}
+    </nav>
+
+    <section id="panel"></section>
+  `)
+
+  document.querySelectorAll('[data-tab]').forEach(b=>
+    b.addEventListener('click',()=>{
+      currentTab=b.dataset.tab
+      renderApp()
+    })
+  )
+
+  renderStaffPanel()
 }
 
 function renderStaffPanel(){
@@ -742,9 +1046,9 @@ async function init(){
     return
   }
 
+  addPortalStyles()
   supabase=createClient(supabaseUrl,supabaseKey)
 
-  // HANDLE LOGIN, NORMAL SESSION AND PASSWORD RECOVERY
   supabase.auth.onAuthStateChange((event,session)=>{
 
     if(event==='PASSWORD_RECOVERY' && session?.user){
