@@ -18,6 +18,7 @@ let selectedTeam = 'U12'
 let selectedPlayer = null
 
 const TEAMS = ['U12', 'U10']
+
 const POSITIONS = [
   'Goalkeeper',
   'Defender',
@@ -35,6 +36,23 @@ function escapeHTML(value = '') {
     '"': '&quot;',
     "'": '&#39;'
   })[char])
+}
+
+// JERSEY NUMBER DISPLAY
+// Show football icon when no number is assigned.
+
+function jerseyNumberDisplay(player) {
+  const number = player.jersey_number
+
+  if (
+    number === null ||
+    number === undefined ||
+    String(number).trim() === ''
+  ) {
+    return '⚽'
+  }
+
+  return escapeHTML(number)
 }
 
 function button(label, action, cls = '') {
@@ -225,11 +243,11 @@ function rosterPage() {
 
       <section class="roster-list">
 
-        ${roster.length ? roster.map((player, index) => `
+        ${roster.length ? roster.map(player => `
           <article class="player-card">
 
             <div class="player-number">
-              ${escapeHTML(player.jersey_number || index + 1)}
+              ${jerseyNumberDisplay(player)}
             </div>
 
             <div class="player-info">
@@ -303,7 +321,7 @@ function profilePage() {
                   <article class="player-card">
 
                     <div class="player-number">
-                      ${escapeHTML(player.jersey_number || '⚽')}
+                      ${jerseyNumberDisplay(player)}
                     </div>
 
                     <div class="player-info">
@@ -405,7 +423,9 @@ function playerPage() {
               >
             ` : `
               <div class="profile-value">
-                ${escapeHTML(player.jersey_number ?? 'Not assigned')}
+                ${player.jersey_number
+                  ? escapeHTML(player.jersey_number)
+                  : '⚽ Unassigned'}
               </div>
             `}
 
