@@ -1174,3 +1174,49 @@ select:focus {
     gap: 12px;
   }
 }
+
+/* SVG ICONS */
+.portal-icon {
+  display: inline-block;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
+.login-choice-icon .portal-icon {
+  width: 28px;
+  height: 28px;
+}
+
+.login-choice-arrow .portal-icon {
+  width: 19px;
+  height: 19px;
+}
+
+.menu-icon .portal-icon {
+  width: 25px;
+  height: 25px;
+}
+
+.team-card-icon .portal-icon,
+.football-avatar .portal-icon {
+  width: 26px;
+  height: 26px;
+}
+
+.profile-chevron .portal-icon,
+.collapse-arrow .portal-icon {
+  transition: transform 0.2s ease;
+}
+
+details[open] .profile-chevron .portal-icon,
+details[open] .collapse-arrow .portal-icon {
+  transform: rotate(180deg);
+}
+
+.back-btn .portal-icon,
+.view-btn .portal-icon,
+.menu-card small .portal-icon,
+.team-card span .portal-icon,
+.fixture-details .portal-icon {
+  margin-right: 5px;
+}
