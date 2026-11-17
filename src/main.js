@@ -573,16 +573,27 @@ async function attendancePage() {
     .select('*')
     .order('activity_date', { ascending: true })
 
-  // Parents only see published activities.
-  // Staff can see published and unpublished activities.
-
   if (!canManageActivities()) {
     activityQuery = activityQuery.eq('is_published', true)
   }
 
-  const { data: activities, error } = await activityQuery
+  const { data: activityData, error } = await activityQuery
 
   if (error) throw error
+
+  // Parents only see activities for teams they are linked to.
+  // Activities without a group are treated as older, all-team activities.
+
+  const visibleTeams = [...new Set(roster.map(p => p.age_group))]
+
+  const activities = (activityData || []).filter(activity => {
+    if (canManageActivities()) return true
+
+    return (
+      !activity.age_group ||
+      visibleTeams.includes(activity.age_group)
+    )
+  })
 
   let responses = []
 
@@ -616,10 +627,23 @@ async function attendancePage() {
           <h3>➕ Create New Activity</h3>
 
           <p class="muted">
-            Create a training session or match for your players.
+            Select the team and enter the activity details.
           </p>
 
           <form id="create-activity-form">
+
+            <label for="activity-team">Team / Age Group</label>
+
+            <select id="activity-team" required>
+              <option value="">Select team</option>
+
+              ${TEAMS.map(team => `
+                <option value="${team}" ${team === 'U12' ? 'selected' : ''}>
+                  ${team}
+                </option>
+              `).join('')}
+
+            </select>
 
             <label for="activity-type">Activity Type</label>
 
@@ -689,97 +713,132 @@ async function attendancePage() {
       ` : ''}
 
       <div class="section-heading">
-        <h3>${canManageActivities() ? 'All Activities' : 'Upcoming Activities'}</h3>
+        <h3>${canManageActivities() ? 'All Activities' : 'My Team Activities'}</h3>
       </div>
 
-      ${(activities || []).map(activity => `
+      ${(activities || []).map(activity => {
 
-        <article class="activity-card">
+        // Only show players belonging to this activity's group.
+        // Older activities without a group remain visible to all players.
 
-          <div class="activity-heading">
+        const activityPlayers = roster.filter(player =>
+          !activity.age_group ||
+          player.age_group === activity.age_group
+        )
 
-            <div>
-              <h3>${escapeHTML(activity.title)}</h3>
+        return `
 
-              <span class="team-badge">
-                ${escapeHTML(activity.activity_type || 'Activity')}
-              </span>
-            </div>
+          <article class="activity-card">
 
-            ${canManageActivities() && !activity.is_published ? `
-              <span class="muted">Draft</span>
-            ` : ''}
+            <div class="activity-heading">
 
-          </div>
+              <div>
+                <h3>${escapeHTML(activity.title)}</h3>
 
-          <p>📅 ${escapeHTML(activity.activity_date || '')}</p>
-          <p>🕒 ${escapeHTML(activity.start_time || '')}</p>
-          <p>📍 ${escapeHTML(activity.venue || '')}</p>
+                <span class="team-badge">
+                  ${escapeHTML(activity.age_group || 'All Teams')}
+                </span>
 
-          ${roster.map(player => {
-
-            const response = responses.find(r =>
-              String(r.player_id) === String(player.id) &&
-              String(r.activity_id) === String(activity.id)
-            )
-
-            return `
-
-              <div class="attendance-row">
-
-                <strong>${escapeHTML(player.name)}</strong>
-
-                <select
-                  data-player="${player.id}"
-                  data-activity="${activity.id}"
-                  class="attendance-select"
-                >
-
-                  <option
-                    value="unsure"
-                    ${!response || response.answer === 'unsure' ? 'selected' : ''}
-                  >
-                    Unsure
-                  </option>
-
-                  <option
-                    value="yes"
-                    ${response?.answer === 'yes' ? 'selected' : ''}
-                  >
-                    Yes
-                  </option>
-
-                  <option
-                    value="no"
-                    ${response?.answer === 'no' ? 'selected' : ''}
-                  >
-                    No
-                  </option>
-
-                </select>
-
+                <span class="team-badge">
+                  ${escapeHTML(activity.activity_type || 'Activity')}
+                </span>
               </div>
 
-              <input
-                class="absence-reason"
-                data-player="${player.id}"
-                data-activity="${activity.id}"
-                placeholder="Absence explanation (optional)"
-                value="${escapeHTML(response?.absence_reason || '')}"
+              ${canManageActivities() && !activity.is_published ? `
+                <span class="muted">Draft</span>
+              ` : ''}
+
+            </div>
+
+            <p>📅 ${escapeHTML(activity.activity_date || '')}</p>
+            <p>🕒 ${escapeHTML(activity.start_time || '')}</p>
+            <p>📍 ${escapeHTML(activity.venue || '')}</p>
+
+            <div class="section-heading">
+              <h4>Player Attendance (${activityPlayers.length})</h4>
+            </div>
+
+            ${activityPlayers.length ? activityPlayers.map(player => {
+
+              const response = responses.find(r =>
+                String(r.player_id) === String(player.id) &&
+                String(r.activity_id) === String(activity.id)
+              )
+
+              return `
+
+                <div class="attendance-row">
+
+                  <strong>${escapeHTML(player.name)}</strong>
+
+                  <select
+                    data-player="${player.id}"
+                    data-activity="${activity.id}"
+                    class="attendance-select"
+                  >
+
+                    <option
+                      value="unsure"
+                      ${!response || response.answer === 'unsure' ? 'selected' : ''}
+                    >
+                      Unsure
+                    </option>
+
+                    <option
+                      value="yes"
+                      ${response?.answer === 'yes' ? 'selected' : ''}
+                    >
+                      Yes
+                    </option>
+
+                    <option
+                      value="no"
+                      ${response?.answer === 'no' ? 'selected' : ''}
+                    >
+                      No
+                    </option>
+
+                  </select>
+
+                </div>
+
+                <input
+                  class="absence-reason"
+                  data-player="${player.id}"
+                  data-activity="${activity.id}"
+                  placeholder="Absence explanation (optional)"
+                  value="${escapeHTML(response?.absence_reason || '')}"
+                >
+
+              `
+            }).join('') : `
+              <div class="empty-state">
+                No linked players in this activity group.
+              </div>
+            `}
+
+            ${activityPlayers.length ? button(
+              'Save Attendance',
+              `save-${activity.id}`,
+              'primary-btn'
+            ) : ''}
+
+            ${canManageActivities() ? `
+              <button
+                type="button"
+                class="delete-btn"
+                data-action="delete-activity"
+                data-activity="${escapeHTML(activity.id)}"
+                data-title="${escapeHTML(activity.title)}"
               >
+                🗑 Delete Activity
+              </button>
+            ` : ''}
 
-            `
-          }).join('')}
+          </article>
 
-          ${button(
-            'Save Attendance',
-            `save-${activity.id}`,
-            'primary-btn'
-          )}
-
-        </article>
-
-      `).join('') || `
+        `
+      }).join('') || `
 
         <div class="empty-state">
           No activities available yet.
@@ -801,12 +860,18 @@ async function createActivity(event) {
     return
   }
 
+  const team = document.querySelector('#activity-team').value
   const title = document.querySelector('#activity-title').value.trim()
   const type = document.querySelector('#activity-type').value
   const date = document.querySelector('#activity-date').value
   const time = document.querySelector('#activity-time').value
   const venue = document.querySelector('#activity-venue').value.trim()
   const published = document.querySelector('#activity-published').checked
+
+  if (!TEAMS.includes(team)) {
+    alert('Please select a valid team.')
+    return
+  }
 
   if (!title || !date || !time || !venue) {
     alert('Please complete all activity details.')
@@ -828,6 +893,7 @@ async function createActivity(event) {
   const { error } = await supabase
     .from('activities')
     .insert({
+      age_group: team,
       title: title,
       activity_type: type,
       activity_date: date,
@@ -849,9 +915,49 @@ async function createActivity(event) {
 
   alert(
     published
-      ? 'Activity created and published successfully!'
-      : 'Activity saved as a draft successfully!'
+      ? `${team} activity created and published successfully!`
+      : `${team} activity saved as a draft successfully!`
   )
+
+  await render()
+}
+
+// DELETE ACTIVITY
+
+async function deleteActivity(activityId, activityTitle) {
+  if (!canManageActivities()) {
+    alert('Staff access required.')
+    return
+  }
+
+  const confirmed = confirm(
+    `Are you sure you want to delete "${activityTitle}"?\n\nThis action cannot be undone.`
+  )
+
+  if (!confirmed) return
+
+  const { data, error } = await supabase
+    .from('activities')
+    .delete()
+    .eq('id', activityId)
+    .select('id')
+
+  if (error) {
+    alert(
+      'Unable to delete activity: ' + error.message +
+      '\n\nCheck your Supabase delete permissions and activity/response relationship.'
+    )
+    return
+  }
+
+  if (!data || data.length === 0) {
+    alert(
+      'The activity was not deleted. Your Supabase permissions may not allow this action.'
+    )
+    return
+  }
+
+  alert('Activity deleted successfully.')
 
   await render()
 }
@@ -864,6 +970,11 @@ async function saveAttendance(activityId) {
   const selects = [...root.querySelectorAll(
     `.attendance-select[data-activity="${activityId}"]`
   )]
+
+  if (!selects.length) {
+    alert('No players found for this activity.')
+    return
+  }
 
   for (const select of selects) {
     const playerId = select.dataset.player
@@ -1127,7 +1238,6 @@ root.addEventListener('click', async event => {
 
   if (action === 'select-login') {
     loginType = target.dataset.loginType
-
     renderLogin()
     return
   }
@@ -1136,7 +1246,6 @@ root.addEventListener('click', async event => {
 
   if (action === 'back-login') {
     loginType = null
-
     renderLogin()
     return
   }
@@ -1170,7 +1279,6 @@ root.addEventListener('click', async event => {
   if (action === 'team') {
     selectedTeam = target.dataset.team
     currentPage = 'roster'
-
     render()
     return
   }
@@ -1204,12 +1312,21 @@ root.addEventListener('click', async event => {
     return
   }
 
+  // DELETE ACTIVITY
+
+  if (action === 'delete-activity') {
+    await deleteActivity(
+      target.dataset.activity,
+      target.dataset.title
+    )
+    return
+  }
+
   // INDIVIDUAL PLAYER
 
   if (action.startsWith('player-')) {
     selectedPlayer = action.replace('player-', '')
     currentPage = 'player'
-
     render()
     return
   }
@@ -1218,7 +1335,6 @@ root.addEventListener('click', async event => {
 
   if (action.startsWith('save-')) {
     const activityId = action.replace('save-', '')
-
     await saveAttendance(activityId)
   }
 
