@@ -268,4 +268,27 @@ textarea:focus {
   .squad-card-heading { flex-wrap: wrap; }
 }
 
+/* Login card icon fix */
+.login-choice-icon {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: #eaf2fc;
+  color: #245b9d;
+  font-family: Arial, sans-serif;
+  font-size: 23px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.login-choice-arrow {
+  font-family: Arial, sans-serif;
+  font-size: 25px;
+  font-weight: 600;
+  color: #2877cf;
+}
+
 
