@@ -16,6 +16,7 @@ let linkedPlayers = []
 let currentPage = 'home'
 let selectedTeam = 'U12'
 let selectedPlayer = null
+let loginType = null
 
 const TEAMS = ['U12', 'U11', 'U10']
 
@@ -28,6 +29,8 @@ const POSITIONS = [
 
 const appName = 'Gaulois Aerion Academy'
 
+// HTML ESCAPE
+
 function escapeHTML(value = '') {
   return String(value).replace(/[&<>"']/g, char => ({
     '&': '&amp;',
@@ -39,7 +42,6 @@ function escapeHTML(value = '') {
 }
 
 // JERSEY NUMBER DISPLAY
-// Show football icon when no number is assigned.
 
 function jerseyNumberDisplay(player) {
   const number = player.jersey_number
@@ -55,6 +57,8 @@ function jerseyNumberDisplay(player) {
   return escapeHTML(number)
 }
 
+// BUTTON
+
 function button(label, action, cls = '') {
   return `
     <button
@@ -66,6 +70,8 @@ function button(label, action, cls = '') {
     </button>
   `
 }
+
+// PERMISSIONS
 
 function canEditPlayers() {
   return Boolean(profile && profile.role !== 'parent')
@@ -281,6 +287,12 @@ function rosterPage() {
 function profilePage() {
   const roster = getVisiblePlayers()
 
+  const teams = profile?.role === 'parent'
+    ? TEAMS.filter(team =>
+        roster.some(p => p.age_group === team)
+      )
+    : TEAMS
+
   return `
     ${header()}
 
@@ -293,7 +305,7 @@ function profilePage() {
         <p class="muted">Browse players by team</p>
       </div>
 
-      ${TEAMS.map(team => {
+      ${teams.map(team => {
         const teamPlayers = roster
           .filter(p => p.age_group === team)
           .sort((a, b) => a.name.localeCompare(b.name))
@@ -359,7 +371,7 @@ function profilePage() {
 // INDIVIDUAL PLAYER PROFILE
 
 function playerPage() {
-  const player = players.find(
+  const player = getVisiblePlayers().find(
     p => String(p.id) === String(selectedPlayer)
   )
 
@@ -423,7 +435,9 @@ function playerPage() {
               >
             ` : `
               <div class="profile-value">
-                ${player.jersey_number
+                ${player.jersey_number !== null &&
+                  player.jersey_number !== undefined &&
+                  String(player.jersey_number).trim() !== ''
                   ? escapeHTML(player.jersey_number)
                   : '⚽ Unassigned'}
               </div>
@@ -487,6 +501,8 @@ async function savePlayerProfile() {
 
   const jerseyInput = document.querySelector('#jersey-number')
   const positionInput = document.querySelector('#player-position')
+
+  if (!jerseyInput || !positionInput) return
 
   const jerseyValue = jerseyInput.value.trim()
   const positionValue = positionInput.value
@@ -643,10 +659,13 @@ function paymentPage() {
     ${header()}
 
     <main class="container">
+
       ${button('← Back to Home', 'home', 'back-btn')}
 
       <h2>Payment</h2>
+
       <p>Payment information will be available here.</p>
+
     </main>
   `
 }
@@ -658,10 +677,13 @@ function videosPage() {
     ${header()}
 
     <main class="container">
+
       ${button('← Back to Home', 'home', 'back-btn')}
 
       <h2>Videos</h2>
+
       <p>Academy training and match videos will be available here.</p>
+
     </main>
   `
 }
@@ -703,56 +725,64 @@ async function saveAttendance(activityId) {
   alert('Attendance saved successfully!')
 }
 
-// RENDER APPLICATION
-
-async function render() {
-  if (!user) {
-    renderLogin()
-    return
-  }
-
-  try {
-    if (!profile) await loadProfile()
-
-    if (!players.length) await loadPlayers()
-
-    if (currentPage === 'home') {
-      root.innerHTML = homePage()
-    } else if (currentPage === 'roster') {
-      root.innerHTML = rosterPage()
-    } else if (currentPage === 'profile') {
-      root.innerHTML = profilePage()
-    } else if (currentPage === 'player') {
-      root.innerHTML = playerPage()
-    } else if (currentPage === 'attendance') {
-      await attendancePage()
-    } else if (currentPage === 'payment') {
-      root.innerHTML = paymentPage()
-    } else if (currentPage === 'videos') {
-      root.innerHTML = videosPage()
-    }
-
-  } catch (error) {
-    console.error(error)
-
-    root.innerHTML = `
-      ${header()}
-      <main class="container">
-        <p>Unable to load information.</p>
-        <p>${escapeHTML(error.message)}</p>
-      </main>
-    `
-  }
-}
-
 // LOGIN SCREEN
 
 function renderLogin() {
+
+  // FIRST SCREEN: SELECT LOGIN TYPE
+
+  if (!loginType) {
+    root.innerHTML = `
+      <main class="login-container">
+
+        <h1>Gaulois Aerion Academy</h1>
+
+        <p>Parent & Team Portal</p>
+
+        <h3>Select Login Type</h3>
+
+        <div class="login-options">
+
+          <button
+            type="button"
+            class="primary-btn"
+            data-action="select-login"
+            data-login-type="parent"
+          >
+            👨‍👩‍👦 Parent/Player Login
+          </button>
+
+          <button
+            type="button"
+            class="primary-btn"
+            data-action="select-login"
+            data-login-type="staff"
+          >
+            🛡️ Staff Login
+          </button>
+
+        </div>
+
+      </main>
+    `
+
+    return
+  }
+
+  // SECOND SCREEN: LOGIN FORM
+
   root.innerHTML = `
     <main class="login-container">
 
       <h1>Gaulois Aerion Academy</h1>
-      <p>Parent & Team Portal</p>
+
+      <h2>
+        ${loginType === 'parent'
+          ? 'Parent/Player Login'
+          : 'Staff Login'}
+      </h2>
+
+      <p>Enter your account details</p>
 
       <form id="login-form">
 
@@ -782,16 +812,94 @@ function renderLogin() {
         Forgot password?
       </a>
 
+      <div>
+        <button
+          type="button"
+          class="back-btn"
+          data-action="back-login"
+        >
+          ← Back to Login Options
+        </button>
+      </div>
+
     </main>
   `
+}
+
+// RENDER APPLICATION
+
+async function render() {
+
+  if (!user) {
+    renderLogin()
+    return
+  }
+
+  try {
+    if (!profile) await loadProfile()
+
+    if (!players.length) await loadPlayers()
+
+    if (currentPage === 'home') {
+      root.innerHTML = homePage()
+
+    } else if (currentPage === 'roster') {
+      root.innerHTML = rosterPage()
+
+    } else if (currentPage === 'profile') {
+      root.innerHTML = profilePage()
+
+    } else if (currentPage === 'player') {
+      root.innerHTML = playerPage()
+
+    } else if (currentPage === 'attendance') {
+      await attendancePage()
+
+    } else if (currentPage === 'payment') {
+      root.innerHTML = paymentPage()
+
+    } else if (currentPage === 'videos') {
+      root.innerHTML = videosPage()
+    }
+
+  } catch (error) {
+    console.error(error)
+
+    root.innerHTML = `
+      ${header()}
+
+      <main class="container">
+
+        <p>Unable to load information.</p>
+
+        <p>${escapeHTML(error.message)}</p>
+
+      </main>
+    `
+  }
 }
 
 // APPLICATION CLICK HANDLER
 
 root.addEventListener('click', async event => {
 
+  // FORGOT PASSWORD
+
   if (event.target.closest('#forgot-password')) {
     event.preventDefault()
+
+    const email = document.querySelector('#email')?.value.trim()
+
+    if (!email) {
+      alert('Enter your email address first.')
+      return
+    }
+
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin
+    })
+
+    alert(error ? error.message : 'Password reset email sent.')
     return
   }
 
@@ -801,6 +909,26 @@ root.addEventListener('click', async event => {
 
   const action = target.dataset.action
 
+  // SELECT LOGIN TYPE
+
+  if (action === 'select-login') {
+    loginType = target.dataset.loginType
+
+    renderLogin()
+    return
+  }
+
+  // BACK TO LOGIN OPTIONS
+
+  if (action === 'back-login') {
+    loginType = null
+
+    renderLogin()
+    return
+  }
+
+  // LOGOUT
+
   if (action === 'logout') {
     await supabase.auth.signOut()
 
@@ -808,11 +936,14 @@ root.addEventListener('click', async event => {
     profile = null
     players = []
     linkedPlayers = []
+    loginType = null
     currentPage = 'home'
 
     renderLogin()
     return
   }
+
+  // HOME
 
   if (action === 'home') {
     currentPage = 'home'
@@ -820,9 +951,12 @@ root.addEventListener('click', async event => {
     return
   }
 
+  // TEAM ROSTER
+
   if (action === 'team') {
     selectedTeam = target.dataset.team
     currentPage = 'roster'
+
     render()
     return
   }
@@ -833,11 +967,15 @@ root.addEventListener('click', async event => {
     return
   }
 
+  // PROFILE BACK
+
   if (action === 'profile-back') {
     currentPage = 'profile'
     render()
     return
   }
+
+  // NAVIGATION
 
   if (action === 'page') {
     currentPage = target.dataset.page
@@ -845,20 +983,28 @@ root.addEventListener('click', async event => {
     return
   }
 
+  // SAVE PLAYER PROFILE
+
   if (action === 'save-player-profile') {
     await savePlayerProfile()
     return
   }
 
+  // INDIVIDUAL PLAYER
+
   if (action.startsWith('player-')) {
     selectedPlayer = action.replace('player-', '')
     currentPage = 'player'
+
     render()
     return
   }
 
+  // SAVE ATTENDANCE
+
   if (action.startsWith('save-')) {
     const activityId = action.replace('save-', '')
+
     await saveAttendance(activityId)
   }
 
@@ -867,6 +1013,7 @@ root.addEventListener('click', async event => {
 // LOGIN FORM HANDLER
 
 root.addEventListener('submit', async event => {
+
   if (event.target.id !== 'login-form') return
 
   event.preventDefault()
@@ -874,66 +1021,97 @@ root.addEventListener('submit', async event => {
   const email = document.querySelector('#email').value
   const password = document.querySelector('#password').value
 
+  const errorMessage = document.querySelector('#login-error')
+
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password
   })
 
   if (error) {
-    document.querySelector('#login-error').textContent = error.message
+    errorMessage.textContent = error.message
     return
   }
 
+  // LOAD ACCOUNT PROFILE
+
+  const { data: userProfile, error: profileError } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', data.user.id)
+    .single()
+
+  if (profileError || !userProfile) {
+
+    await supabase.auth.signOut()
+
+    errorMessage.textContent =
+      'Unable to find your user profile.'
+
+    return
+  }
+
+  // VERIFY LOGIN TYPE
+
+  const isParent = userProfile.role === 'parent'
+
+  if (
+    (loginType === 'parent' && !isParent) ||
+    (loginType === 'staff' && isParent)
+  ) {
+
+    await supabase.auth.signOut()
+
+    errorMessage.textContent =
+      'This account cannot use this login option. Please select the correct login type.'
+
+    return
+  }
+
+  // LOGIN SUCCESSFUL
+
   user = data.user
-  profile = null
+  profile = userProfile
+
   players = []
   linkedPlayers = []
+
   currentPage = 'home'
 
   await render()
-})
 
-// FORGOT PASSWORD
-
-root.addEventListener('click', async event => {
-  if (!event.target.closest('#forgot-password')) return
-
-  event.preventDefault()
-
-  const email = document.querySelector('#email').value
-
-  if (!email) {
-    alert('Enter your email address first.')
-    return
-  }
-
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: window.location.origin
-  })
-
-  alert(error ? error.message : 'Password reset email sent.')
-})
-
-// AUTHENTICATION STATE
-
-supabase.auth.onAuthStateChange((_event, session) => {
-  user = session?.user || null
-  profile = null
-  players = []
-  linkedPlayers = []
-  currentPage = 'home'
-
-  render()
 })
 
 // START APPLICATION
 
 async function initialise() {
-  const { data } = await supabase.auth.getSession()
 
-  user = data.session?.user || null
+  try {
+    const { data, error } = await supabase.auth.getSession()
 
-  await render()
+    if (error) throw error
+
+    user = data.session?.user || null
+
+    if (user) {
+      profile = null
+      players = []
+      linkedPlayers = []
+    }
+
+    await render()
+
+  } catch (error) {
+    console.error(error)
+
+    root.innerHTML = `
+      <main class="container">
+        <p>Unable to start application.</p>
+        <p>${escapeHTML(error.message)}</p>
+      </main>
+    `
+  }
+
 }
 
 initialise()
