@@ -17,7 +17,7 @@ let currentPage = 'home'
 let selectedTeam = 'U12'
 let selectedPlayer = null
 
-const TEAMS = ['U12', 'U10']
+const TEAMS = ['U12', 'U11', 'U10']
 
 const POSITIONS = [
   'Goalkeeper',
