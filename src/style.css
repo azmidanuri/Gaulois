@@ -282,9 +282,11 @@ h3 {
 
 /* UNASSIGNED JERSEY NUMBER */
 
-.player-number:has(:not(*)) {
-  background: #14213a;
+.player-number {
+  text-align: center;
 }
+
+/* PLAYER INFORMATION */
 
 .player-info {
   display: flex;
@@ -521,12 +523,27 @@ h3 {
   font-size: 25px;
   font-weight: 800;
   line-height: 1.2;
+  text-align: center;
+}
+
+.login-container h2 {
+  color: #14213a;
+  text-align: center;
+  font-size: 21px;
+  margin-top: 25px;
+}
+
+.login-container h3 {
+  color: #14213a;
+  text-align: center;
+  margin-top: 30px;
 }
 
 .login-container p {
   color: #8490a1;
   font-size: 13px;
   margin-bottom: 25px;
+  text-align: center;
 }
 
 .login-container input {
@@ -547,9 +564,39 @@ h3 {
   text-decoration: none;
 }
 
+/* SEPARATE LOGIN OPTIONS */
+
+.login-options {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin-top: 30px;
+}
+
+.login-options button {
+  width: 100%;
+  min-height: 65px;
+  font-size: 16px;
+  font-weight: 800;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.login-options button:active {
+  transform: scale(0.98);
+}
+
+.login-container .back-btn {
+  margin-top: 25px;
+  width: 100%;
+}
+
 #login-error {
   color: #d33;
   font-size: 12px;
+  text-align: center;
+  margin-top: 12px;
 }
 
 /* RESPONSIVE */
@@ -600,5 +647,13 @@ h3 {
   .view-btn {
     padding: 8px 9px;
     font-size: 11px;
+  }
+
+  .login-container {
+    margin-top: 55px;
+  }
+
+  .login-options button {
+    font-size: 14px;
   }
 }
