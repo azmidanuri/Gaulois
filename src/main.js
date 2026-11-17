@@ -12,9 +12,18 @@ let user = null
 let profile = null
 let players = []
 let linkedPlayers = []
+
 let currentPage = 'home'
 let selectedTeam = 'U12'
 let selectedPlayer = null
+
+const TEAMS = ['U12', 'U10']
+const POSITIONS = [
+  'Goalkeeper',
+  'Defender',
+  'Midfielder',
+  'Forward'
+]
 
 const appName = 'Gaulois Aerion Academy'
 
@@ -29,12 +38,28 @@ function escapeHTML(value = '') {
 }
 
 function button(label, action, cls = '') {
-  return `<button class="${cls}" data-action="${action}">${label}</button>`
+  return `
+    <button
+      type="button"
+      class="${cls}"
+      data-action="${action}"
+    >
+      ${label}
+    </button>
+  `
 }
 
 function canEditPlayers() {
-  return profile && profile.role !== 'parent'
+  return Boolean(profile && profile.role !== 'parent')
 }
+
+function getVisiblePlayers() {
+  return profile?.role === 'parent'
+    ? linkedPlayers
+    : players
+}
+
+// LOAD USER PROFILE
 
 async function loadProfile() {
   const { data, error } = await supabase
@@ -44,8 +69,11 @@ async function loadProfile() {
     .single()
 
   if (error) throw error
+
   profile = data
 }
+
+// LOAD PLAYERS
 
 async function loadPlayers() {
   const { data, error } = await supabase
@@ -75,14 +103,19 @@ async function loadPlayers() {
   }
 }
 
+// HEADER
+
 function header() {
   return `
     <header class="topbar">
-      <div>
-        <strong>${appName}</strong>
+
+      <div class="brand">
+        <div class="brand-name">${appName}</div>
         <small>Parent & Team Portal</small>
       </div>
+
       ${button('Logout', 'logout', 'logout-btn')}
+
     </header>
   `
 }
@@ -90,68 +123,83 @@ function header() {
 // HOME PAGE
 
 function homePage() {
-  const isParent = profile?.role === 'parent'
+  const visiblePlayers = getVisiblePlayers()
 
-  const teams = isParent
-    ? ['U12', 'U10'].filter(team =>
-        linkedPlayers.some(player => player.age_group === team)
+  const teams = profile?.role === 'parent'
+    ? TEAMS.filter(team =>
+        visiblePlayers.some(p => p.age_group === team)
       )
-    : ['U12', 'U10']
+    : TEAMS
 
   return `
     ${header()}
 
     <main class="container">
 
-      <h2>Welcome, ${escapeHTML(profile?.full_name || 'User')}</h2>
-      <p class="muted">Select a section to continue.</p>
+      <div class="welcome-section">
+        <h2>Welcome, ${escapeHTML(profile?.full_name || 'User')}</h2>
+        <p class="muted">Select a section to continue.</p>
+      </div>
 
       <section class="menu-grid">
-        ${menuCard('Player Profile', '👤', 'profile')}
+
+        ${menuCard('Player Profiles', '👤', 'profile')}
         ${menuCard('Attendance', '📅', 'attendance')}
         ${menuCard('Payment', '💳', 'payment')}
         ${menuCard('Videos', '🎬', 'videos')}
+
       </section>
 
-      <h3>${isParent ? 'My Teams' : 'Academy Teams'}</h3>
+      <div class="section-heading">
+        <h3>${profile?.role === 'parent' ? 'My Teams' : 'Academy Teams'}</h3>
+      </div>
 
       <section class="team-grid">
 
         ${teams.map(team => {
-          const count = (isParent ? linkedPlayers : players)
-            .filter(p => p.age_group === team).length
+          const count = visiblePlayers.filter(
+            p => p.age_group === team
+          ).length
 
           return `
-            <article class="team-card"
+            <article
+              class="team-card"
               data-action="team"
-              data-team="${team}">
+              data-team="${team}"
+            >
 
               <div class="team-card-icon">⚽</div>
+
               <h3>${team}</h3>
 
               <p class="player-count">
                 ${count} ${count === 1 ? 'Player' : 'Players'}
               </p>
 
-              <span>View roster →</span>
+              <span>View full roster →</span>
+
             </article>
           `
         }).join('')}
 
       </section>
+
     </main>
   `
 }
 
 function menuCard(title, icon, page) {
   return `
-    <article class="menu-card"
+    <article
+      class="menu-card"
       data-action="page"
-      data-page="${page}">
+      data-page="${page}"
+    >
 
-      <span>${icon}</span>
+      <span class="menu-icon">${icon}</span>
       <strong>${title}</strong>
       <small>Open section →</small>
+
     </article>
   `
 }
@@ -159,10 +207,9 @@ function menuCard(title, icon, page) {
 // FULL TEAM ROSTER
 
 function rosterPage() {
-  const roster = (profile?.role === 'parent'
-    ? linkedPlayers
-    : players
-  ).filter(p => p.age_group === selectedTeam)
+  const roster = getVisiblePlayers()
+    .filter(p => p.age_group === selectedTeam)
+    .sort((a, b) => a.name.localeCompare(b.name))
 
   return `
     ${header()}
@@ -171,8 +218,10 @@ function rosterPage() {
 
       ${button('← Back to Home', 'home', 'back-btn')}
 
-      <h2>${selectedTeam} Full Roster</h2>
-      <p class="muted">${roster.length} registered players</p>
+      <div class="page-heading">
+        <h2>${selectedTeam} Full Roster</h2>
+        <p class="muted">${roster.length} registered players</p>
+      </div>
 
       <section class="roster-list">
 
@@ -190,17 +239,106 @@ function rosterPage() {
               </small>
             </div>
 
-            ${button('View', `player-${player.id}`, 'view-btn')}
+            ${button(
+              'View →',
+              `player-${player.id}`,
+              'view-btn'
+            )}
 
           </article>
-        `).join('') : '<p>No players registered in this team.</p>'}
+        `).join('') : `
+          <div class="empty-state">
+            No players registered in this team.
+          </div>
+        `}
 
       </section>
+
     </main>
   `
 }
 
-// PLAYER PROFILE PAGE
+// GROUPED PLAYER PROFILES
+
+function profilePage() {
+  const roster = getVisiblePlayers()
+
+  return `
+    ${header()}
+
+    <main class="container">
+
+      ${button('← Back to Home', 'home', 'back-btn')}
+
+      <div class="page-heading">
+        <h2>Player Profiles</h2>
+        <p class="muted">Browse players by team</p>
+      </div>
+
+      ${TEAMS.map(team => {
+        const teamPlayers = roster
+          .filter(p => p.age_group === team)
+          .sort((a, b) => a.name.localeCompare(b.name))
+
+        return `
+          <section class="profile-team-section">
+
+            <div class="profile-team-heading">
+
+              <div>
+                <h3>${team} TEAM</h3>
+                <small>Gaulois Aerion Academy</small>
+              </div>
+
+              <span>
+                ${teamPlayers.length} PLAYERS
+              </span>
+
+            </div>
+
+            <div class="roster-list">
+
+              ${teamPlayers.length
+                ? teamPlayers.map(player => `
+                  <article class="player-card">
+
+                    <div class="player-number">
+                      ${escapeHTML(player.jersey_number || '⚽')}
+                    </div>
+
+                    <div class="player-info">
+                      <strong>${escapeHTML(player.name)}</strong>
+                      <small>
+                        ${escapeHTML(player.position || 'Position not assigned')}
+                      </small>
+                    </div>
+
+                    ${button(
+                      'View →',
+                      `player-${player.id}`,
+                      'view-btn'
+                    )}
+
+                  </article>
+                `).join('')
+                : `
+                  <div class="empty-state">
+                    No players registered yet.
+                  </div>
+                `
+              }
+
+            </div>
+
+          </section>
+        `
+      }).join('')}
+
+    </main>
+  `
+}
+
+// INDIVIDUAL PLAYER PROFILE
 
 function playerPage() {
   const player = players.find(
@@ -216,7 +354,7 @@ function playerPage() {
 
     <main class="container">
 
-      ${button('← Back to Roster', 'roster', 'back-btn')}
+      ${button('← Back', 'profile-back', 'back-btn')}
 
       <section class="player-profile">
 
@@ -252,74 +390,70 @@ function playerPage() {
           </div>
 
           <div class="profile-field">
+
             <label>Jersey Number</label>
 
-            ${
-              canEdit
-                ? `
-                  <input
-                    id="jersey-number"
-                    type="number"
-                    min="1"
-                    max="99"
-                    value="${escapeHTML(player.jersey_number ?? '')}"
-                    placeholder="Enter jersey number"
-                  >
-                `
-                : `
-                  <div class="profile-value">
-                    ${escapeHTML(player.jersey_number ?? 'Not assigned')}
-                  </div>
-                `
-            }
+            ${canEdit ? `
+              <input
+                id="jersey-number"
+                type="number"
+                min="1"
+                max="99"
+                step="1"
+                value="${escapeHTML(player.jersey_number ?? '')}"
+                placeholder="Enter jersey number"
+              >
+            ` : `
+              <div class="profile-value">
+                ${escapeHTML(player.jersey_number ?? 'Not assigned')}
+              </div>
+            `}
+
           </div>
 
           <div class="profile-field">
+
             <label>Position</label>
 
-            ${
-              canEdit
-                ? `
-                  <select id="player-position">
-                    <option value="">Select position</option>
+            ${canEdit ? `
+              <select id="player-position">
 
-                    ${['Goalkeeper', 'Defender', 'Midfielder', 'Forward'].map(position => `
-                      <option
-                        value="${position}"
-                        ${player.position === position ? 'selected' : ''}
-                      >
-                        ${position}
-                      </option>
-                    `).join('')}
+                <option value="">Select position</option>
 
-                  </select>
-                `
-                : `
-                  <div class="profile-value">
-                    ${escapeHTML(player.position || 'Not assigned')}
-                  </div>
-                `
-            }
+                ${POSITIONS.map(position => `
+                  <option
+                    value="${position}"
+                    ${player.position === position ? 'selected' : ''}
+                  >
+                    ${position}
+                  </option>
+                `).join('')}
+
+              </select>
+            ` : `
+              <div class="profile-value">
+                ${escapeHTML(player.position || 'Not assigned')}
+              </div>
+            `}
+
           </div>
 
-          ${
-            canEdit
-              ? `
-                <button
-                  class="primary-btn"
-                  data-action="save-player-profile"
-                >
-                  Save Changes
-                </button>
-              `
-              : `
-                <p class="parent-note">
-                  Player information is managed by academy staff.
-                </p>
-              `
-          }
+          ${canEdit ? `
+            <button
+              type="button"
+              class="primary-btn"
+              data-action="save-player-profile"
+            >
+              Save Changes
+            </button>
+          ` : `
+            <p class="parent-note">
+              Player information is managed by academy staff.
+            </p>
+          `}
 
         </div>
+
       </section>
 
     </main>
@@ -329,6 +463,8 @@ function playerPage() {
 // SAVE PLAYER PROFILE
 
 async function savePlayerProfile() {
+  if (!canEditPlayers()) return
+
   const jerseyInput = document.querySelector('#jersey-number')
   const positionInput = document.querySelector('#player-position')
 
@@ -348,6 +484,11 @@ async function savePlayerProfile() {
       alert('Jersey number must be between 1 and 99.')
       return
     }
+  }
+
+  if (positionValue && !POSITIONS.includes(positionValue)) {
+    alert('Please select a valid position.')
+    return
   }
 
   const { error } = await supabase
@@ -371,53 +512,10 @@ async function savePlayerProfile() {
   render()
 }
 
-// PLAYER PROFILE LIST
-
-function profilePage() {
-  const roster = profile?.role === 'parent'
-    ? linkedPlayers
-    : players
-
-  return `
-    ${header()}
-
-    <main class="container">
-
-      ${button('← Back to Home', 'home', 'back-btn')}
-
-      <h2>Player Profiles</h2>
-
-      <section class="roster-list">
-
-        ${roster.map(player => `
-          <article class="player-card">
-
-            <div class="player-number">
-              ${escapeHTML(player.jersey_number || '⚽')}
-            </div>
-
-            <div class="player-info">
-              <strong>${escapeHTML(player.name)}</strong>
-              <small>${escapeHTML(player.age_group || '')}</small>
-            </div>
-
-            ${button('View', `player-${player.id}`, 'view-btn')}
-
-          </article>
-        `).join('')}
-
-      </section>
-    </main>
-  `
-}
-
-// ATTENDANCE
+// ATTENDANCE PAGE
 
 async function attendancePage() {
-  const roster = profile?.role === 'parent'
-    ? linkedPlayers
-    : players
-
+  const roster = getVisiblePlayers()
   const ids = roster.map(p => p.id)
 
   const { data: activities, error } = await supabase
@@ -426,30 +524,19 @@ async function attendancePage() {
     .eq('is_published', true)
     .order('activity_date', { ascending: true })
 
-  if (error) {
-    root.innerHTML = `${header()}
-      <main class="container">
-        <p>Could not load activities.</p>
-      </main>`
-    return
-  }
+  if (error) throw error
 
-  const { data: responses, error: responseError } = await supabase
-    .from('responses')
-    .select('*')
-    .in(
-      'player_id',
-      ids.length
-        ? ids
-        : ['00000000-0000-0000-0000-000000000000']
-    )
+  let responses = []
 
-  if (responseError) {
-    root.innerHTML = `${header()}
-      <main class="container">
-        <p>Could not load attendance responses.</p>
-      </main>`
-    return
+  if (ids.length) {
+    const { data, error: responseError } = await supabase
+      .from('responses')
+      .select('*')
+      .in('player_id', ids)
+
+    if (responseError) throw responseError
+
+    responses = data || []
   }
 
   root.innerHTML = `
@@ -467,13 +554,13 @@ async function attendancePage() {
 
           <h3>${escapeHTML(activity.title)}</h3>
 
-          <p>${escapeHTML(activity.activity_type)}</p>
+          <p>${escapeHTML(activity.activity_type || '')}</p>
           <p>${escapeHTML(activity.activity_date || '')}</p>
           <p>${escapeHTML(activity.start_time || '')}</p>
           <p>${escapeHTML(activity.venue || '')}</p>
 
           ${roster.map(player => {
-            const response = (responses || []).find(r =>
+            const response = responses.find(r =>
               r.player_id === player.id &&
               r.activity_id === activity.id
             )
@@ -502,7 +589,6 @@ async function attendancePage() {
                     ${response?.answer === 'no' ? 'selected' : ''}>
                     No
                   </option>
-
                 </select>
 
               </div>
@@ -530,24 +616,30 @@ async function attendancePage() {
   `
 }
 
-// OTHER PAGES
+// PAYMENT PAGE
 
 function paymentPage() {
   return `
     ${header()}
+
     <main class="container">
       ${button('← Back to Home', 'home', 'back-btn')}
+
       <h2>Payment</h2>
       <p>Payment information will be available here.</p>
     </main>
   `
 }
 
+// VIDEOS PAGE
+
 function videosPage() {
   return `
     ${header()}
+
     <main class="container">
       ${button('← Back to Home', 'home', 'back-btn')}
+
       <h2>Videos</h2>
       <p>Academy training and match videos will be available here.</p>
     </main>
@@ -591,7 +683,7 @@ async function saveAttendance(activityId) {
   alert('Attendance saved successfully!')
 }
 
-// MAIN RENDER
+// RENDER APPLICATION
 
 async function render() {
   if (!user) {
@@ -606,30 +698,18 @@ async function render() {
 
     if (currentPage === 'home') {
       root.innerHTML = homePage()
-    }
-
-    else if (currentPage === 'roster') {
+    } else if (currentPage === 'roster') {
       root.innerHTML = rosterPage()
-    }
-
-    else if (currentPage === 'player') {
-      root.innerHTML = playerPage()
-    }
-
-    else if (currentPage === 'attendance') {
-      await attendancePage()
-    }
-
-    else if (currentPage === 'payment') {
-      root.innerHTML = paymentPage()
-    }
-
-    else if (currentPage === 'videos') {
-      root.innerHTML = videosPage()
-    }
-
-    else if (currentPage === 'profile') {
+    } else if (currentPage === 'profile') {
       root.innerHTML = profilePage()
+    } else if (currentPage === 'player') {
+      root.innerHTML = playerPage()
+    } else if (currentPage === 'attendance') {
+      await attendancePage()
+    } else if (currentPage === 'payment') {
+      root.innerHTML = paymentPage()
+    } else if (currentPage === 'videos') {
+      root.innerHTML = videosPage()
     }
 
   } catch (error) {
@@ -686,9 +766,15 @@ function renderLogin() {
   `
 }
 
-// CLICK EVENTS
+// APPLICATION CLICK HANDLER
 
 root.addEventListener('click', async event => {
+
+  if (event.target.closest('#forgot-password')) {
+    event.preventDefault()
+    return
+  }
+
   const target = event.target.closest('[data-action]')
 
   if (!target) return
@@ -727,6 +813,12 @@ root.addEventListener('click', async event => {
     return
   }
 
+  if (action === 'profile-back') {
+    currentPage = 'profile'
+    render()
+    return
+  }
+
   if (action === 'page') {
     currentPage = target.dataset.page
     render()
@@ -734,7 +826,6 @@ root.addEventListener('click', async event => {
   }
 
   if (action === 'save-player-profile') {
-    if (!canEditPlayers()) return
     await savePlayerProfile()
     return
   }
@@ -750,9 +841,10 @@ root.addEventListener('click', async event => {
     const activityId = action.replace('save-', '')
     await saveAttendance(activityId)
   }
+
 })
 
-// LOGIN FORM
+// LOGIN FORM HANDLER
 
 root.addEventListener('submit', async event => {
   if (event.target.id !== 'login-form') return
@@ -784,7 +876,7 @@ root.addEventListener('submit', async event => {
 // FORGOT PASSWORD
 
 root.addEventListener('click', async event => {
-  if (event.target.id !== 'forgot-password') return
+  if (!event.target.closest('#forgot-password')) return
 
   event.preventDefault()
 
@@ -799,14 +891,10 @@ root.addEventListener('click', async event => {
     redirectTo: window.location.origin
   })
 
-  alert(
-    error
-      ? error.message
-      : 'Password reset email sent.'
-  )
+  alert(error ? error.message : 'Password reset email sent.')
 })
 
-// AUTHENTICATION
+// AUTHENTICATION STATE
 
 supabase.auth.onAuthStateChange((_event, session) => {
   user = session?.user || null
@@ -818,7 +906,7 @@ supabase.auth.onAuthStateChange((_event, session) => {
   render()
 })
 
-// INITIALISE
+// START APPLICATION
 
 async function initialise() {
   const { data } = await supabase.auth.getSession()
