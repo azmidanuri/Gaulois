@@ -16,7 +16,7 @@ let profile = null
 let players = []
 let linkedPlayers = []
 let currentPage = 'login'
-let loginType = 'parent'
+let loginType = null
 let selectedTeam = 'U12'
 let selectedPlayer = null
 let isSigningUp = false
@@ -49,9 +49,7 @@ function isPastActivity(activity) {
 
 function formatDate(value) {
   if (!value) return 'Date not set'
-
   const date = new Date(`${value}T00:00:00`)
-
   if (Number.isNaN(date.getTime())) return value
 
   return date.toLocaleDateString('en-SG', {
@@ -64,7 +62,6 @@ function formatDate(value) {
 
 function formatTime(value) {
   if (!value) return ''
-
   const parts = value.split(':')
   if (parts.length < 2) return value
 
@@ -117,96 +114,139 @@ function loginPage() {
   root.innerHTML = `
     <main class="login-page">
 
-      <div class="login-card">
+      <section class="login-card">
 
-        <img
-          src="/gaulois-logo.png"
-          class="login-logo"
-          alt="Gaulois Aerion Academy"
-        >
-
-        <h1>Gaulois Aerion Academy</h1>
-        <p class="muted">Parent & Staff Portal</p>
+        <div class="login-brand">
+          <img
+            src="/gaulois-logo.png"
+            class="login-logo"
+            alt="Gaulois Aerion Academy"
+          >
+          <h1>Gaulois Aerion Academy</h1>
+          <p>ACADEMY PORTAL</p>
+        </div>
 
         ${!loginType ? `
-          <h3>Select Login Type</h3>
 
-          <button
-            class="primary-btn"
-            data-action="choose-parent"
-          >
-            Parent/Player Login
-          </button>
+          <div class="login-choice-content">
+            <span class="login-eyebrow">WELCOME</span>
+            <h2>Choose your login</h2>
+            <p class="login-description">
+              Select your portal to continue
+            </p>
 
-          <button
-            class="secondary-btn"
-            data-action="choose-staff"
-          >
-            Staff Login
-          </button>
+            <div class="login-choice-grid">
+
+              <button
+                type="button"
+                class="login-choice"
+                data-action="choose-parent"
+              >
+                <span class="login-choice-icon">♙</span>
+                <strong>Parent/Player Login</strong>
+                <small>
+                  Attendance, activities and player information
+                </small>
+                <span class="login-choice-arrow">→</span>
+              </button>
+
+              <button
+                type="button"
+                class="login-choice"
+                data-action="choose-staff"
+              >
+                <span class="login-choice-icon">⚽</span>
+                <strong>Staff Login</strong>
+                <small>
+                  Manage teams, players and academy activities
+                </small>
+                <span class="login-choice-arrow">→</span>
+              </button>
+
+            </div>
+
+            <p class="login-hint">
+              Select a card to proceed to your login
+            </p>
+          </div>
+
         ` : `
 
-          <button
-            class="back-btn"
-            data-action="change-login"
-          >
-            ← Change Login Type
-          </button>
+          <div class="login-form-content">
 
-          <h3>
-            ${loginType === 'parent'
-              ? 'Parent/Player Login'
-              : 'Staff Login'}
-          </h3>
+            <button
+              class="back-btn login-change-btn"
+              data-action="change-login"
+            >
+              ← Change Login Type
+            </button>
 
-          <form id="login-form">
+            <span class="login-eyebrow">PORTAL ACCESS</span>
 
-            ${isSigningUp ? `
-              <label>Full Name</label>
+            <h2>
+              ${loginType === 'parent'
+                ? 'Parent/Player Login'
+                : 'Staff Login'}
+            </h2>
+
+            <p class="login-description">
+              Enter your account details to continue
+            </p>
+
+            <form id="login-form">
+
+              ${isSigningUp ? `
+                <label>Full Name</label>
+                <input
+                  id="full-name"
+                  type="text"
+                  placeholder="Enter your full name"
+                  required
+                >
+              ` : ''}
+
+              <label>Email Address</label>
               <input
-                id="full-name"
-                type="text"
-                placeholder="Enter your full name"
+                id="email"
+                type="email"
+                placeholder="Email address"
                 required
               >
+
+              <label>Password</label>
+              <input
+                id="password"
+                type="password"
+                placeholder="Password"
+                required
+              >
+
+              <button type="submit" class="primary-btn">
+                ${isSigningUp ? 'Create Account' : 'Login'}
+              </button>
+
+            </form>
+
+            ${loginType === 'parent' ? `
+              <button
+                class="text-btn"
+                data-action="toggle-signup"
+              >
+                ${isSigningUp
+                  ? 'Already have an account? Login'
+                  : 'Create a parent account'}
+              </button>
             ` : ''}
 
-            <label>Email Address</label>
-            <input
-              id="email"
-              type="email"
-              placeholder="Email address"
-              required
-            >
-
-            <label>Password</label>
-            <input
-              id="password"
-              type="password"
-              placeholder="Password"
-              required
-            >
-
-            <button type="submit" class="primary-btn">
-              ${isSigningUp ? 'Create Account' : 'Login'}
-            </button>
-
-          </form>
-
-          ${loginType === 'parent' ? `
-            <button
-              class="text-btn"
-              data-action="toggle-signup"
-            >
-              ${isSigningUp
-                ? 'Already have an account? Login'
-                : 'Create a parent account'}
-            </button>
-          ` : ''}
+          </div>
 
         `}
 
-      </div>
+        <div class="login-footer">
+          GAULOIS AERION ACADEMY
+        </div>
+
+      </section>
 
     </main>
   `
@@ -221,7 +261,6 @@ async function login(email, password) {
   if (error) throw error
 
   user = data.user
-
   await loadProfile()
 
   if (loginType === 'staff' && profile.role === 'parent') {
@@ -309,7 +348,6 @@ async function loadProfile() {
     .single()
 
   if (error) throw error
-
   profile = data
 }
 
@@ -320,7 +358,6 @@ async function loadPlayers() {
     .order('name')
 
   if (error) throw error
-
   players = data || []
 
   if (profile.role === 'parent') {
@@ -332,10 +369,7 @@ async function loadPlayers() {
     if (linkError) throw linkError
 
     const ids = (links || []).map(link => link.player_id)
-
-    linkedPlayers = players.filter(player =>
-      ids.includes(player.id)
-    )
+    linkedPlayers = players.filter(player => ids.includes(player.id))
   } else {
     linkedPlayers = players
   }
@@ -348,29 +382,21 @@ async function loadPlayers() {
 function header() {
   return `
     <header class="topbar">
-
       <div class="brand">
-
         <img
           src="/gaulois-logo.png"
           class="portal-logo"
           alt="Gaulois Aerion"
         >
-
         <div>
           <div class="brand-name">Gaulois Aerion Academy</div>
           <small>Parent & Team Portal</small>
         </div>
-
       </div>
 
-      <button
-        class="logout-btn"
-        data-action="logout"
-      >
+      <button class="logout-btn" data-action="logout">
         Logout
       </button>
-
     </header>
   `
 }
@@ -381,11 +407,7 @@ function header() {
 
 function menuCard(title, icon, page) {
   return `
-    <article
-      class="menu-card"
-      data-action="page"
-      data-page="${page}"
-    >
+    <article class="menu-card" data-action="page" data-page="${page}">
       <span class="menu-icon">${icon}</span>
       <strong>${title}</strong>
       <small>Open section →</small>
@@ -413,12 +435,10 @@ function homePage() {
       </div>
 
       <section class="menu-grid">
-
         ${menuCard('Player Profiles', '👤', 'profile')}
         ${menuCard('Attendance', '📅', 'attendance')}
         ${menuCard('Payment', '💳', 'payment')}
         ${menuCard('Videos', '🎬', 'videos')}
-
       </section>
 
       <div class="section-heading">
@@ -426,7 +446,6 @@ function homePage() {
       </div>
 
       <section class="team-grid">
-
         ${teams.map(team => {
           const count = roster.filter(
             player => player.age_group === team
@@ -447,7 +466,6 @@ function homePage() {
             </article>
           `
         }).join('')}
-
       </section>
 
     </main>
@@ -467,7 +485,6 @@ function rosterPage() {
     ${header()}
 
     <main class="container">
-
       ${backButton()}
 
       <div class="page-heading">
@@ -476,34 +493,21 @@ function rosterPage() {
       </div>
 
       <section class="roster-list">
-
         ${roster.length ? roster.map(player => `
           <article class="player-card">
-
-            <div class="player-number">
-              ${jerseyDisplay(player)}
-            </div>
-
+            <div class="player-number">${jerseyDisplay(player)}</div>
             <div class="player-info">
               <strong>${esc(player.name)}</strong>
               <small>${esc(player.position || 'Position not assigned')}</small>
             </div>
-
-            <button
-              class="view-btn"
-              data-action="player"
-              data-player="${player.id}"
-            >
+            <button class="view-btn" data-action="player" data-player="${player.id}">
               View →
             </button>
-
           </article>
         `).join('') : `
           <div class="empty-state">No players in this team.</div>
         `}
-
       </section>
-
     </main>
   `
 }
@@ -525,7 +529,6 @@ function profilePage() {
     ${header()}
 
     <main class="container">
-
       ${backButton()}
 
       <div class="page-heading">
@@ -540,7 +543,6 @@ function profilePage() {
 
         return `
           <section class="profile-team-section">
-
             <div class="profile-team-heading">
               <div>
                 <h3>${team} TEAM</h3>
@@ -550,40 +552,26 @@ function profilePage() {
             </div>
 
             <div class="roster-list">
-
               ${teamPlayers.map(player => `
                 <article class="player-card">
-
-                  <div class="player-number">
-                    ${jerseyDisplay(player)}
-                  </div>
-
+                  <div class="player-number">${jerseyDisplay(player)}</div>
                   <div class="player-info">
                     <strong>${esc(player.name)}</strong>
                     <small>${esc(player.position || 'Position not assigned')}</small>
                   </div>
-
-                  <button
-                    class="view-btn"
-                    data-action="player"
-                    data-player="${player.id}"
-                  >
+                  <button class="view-btn" data-action="player" data-player="${player.id}">
                     View →
                   </button>
-
                 </article>
               `).join('')}
 
               ${teamPlayers.length === 0
                 ? '<div class="empty-state">No players registered yet.</div>'
                 : ''}
-
             </div>
-
           </section>
         `
       }).join('')}
-
     </main>
   `
 }
@@ -599,13 +587,11 @@ function playerPage() {
     ${header()}
 
     <main class="container">
-
       <button class="back-btn" data-action="profile-back">
         ← Back to Profiles
       </button>
 
       <section class="player-profile">
-
         <div class="player-profile-banner">
           <div class="football-avatar">⚽</div>
           <h2>${esc(player.name)}</h2>
@@ -613,7 +599,6 @@ function playerPage() {
         </div>
 
         <div class="player-profile-content">
-
           <h3>Player Information</h3>
 
           <div class="profile-field">
@@ -633,7 +618,6 @@ function playerPage() {
 
           <div class="profile-field">
             <label>Jersey Number</label>
-
             ${canEditPlayers() ? `
               <input
                 id="jersey-number"
@@ -646,45 +630,31 @@ function playerPage() {
             ` : `
               <div>${player.jersey_number ?? 'Unassigned'}</div>
             `}
-
           </div>
 
           <div class="profile-field">
             <label>Position</label>
-
             ${canEditPlayers() ? `
               <select id="player-position">
                 <option value="">Select position</option>
-
                 ${POSITIONS.map(position => `
-                  <option
-                    value="${position}"
-                    ${player.position === position ? 'selected' : ''}
-                  >
+                  <option value="${position}" ${player.position === position ? 'selected' : ''}>
                     ${position}
                   </option>
                 `).join('')}
-
               </select>
             ` : `
               <div>${esc(player.position || 'Not assigned')}</div>
             `}
-
           </div>
 
           ${canEditPlayers() ? `
-            <button
-              class="primary-btn"
-              data-action="save-player"
-            >
+            <button class="primary-btn" data-action="save-player">
               Save Changes
             </button>
           ` : ''}
-
         </div>
-
       </section>
-
     </main>
   `
 }
@@ -742,14 +712,12 @@ async function attendancePage() {
   }
 
   const { data: activityData, error } = await query
-
   if (error) throw error
 
   const visibleTeams = [...new Set(roster.map(player => player.age_group))]
 
   const activities = (activityData || []).filter(activity => {
     if (canManage()) return true
-
     return !activity.age_group || visibleTeams.includes(activity.age_group)
   })
 
@@ -762,7 +730,6 @@ async function attendancePage() {
       .in('player_id', playerIds)
 
     if (responseError) throw responseError
-
     responses = data || []
   }
 
@@ -773,7 +740,6 @@ async function attendancePage() {
     ${header()}
 
     <main class="container">
-
       ${backButton()}
 
       <div class="page-heading">
@@ -783,22 +749,8 @@ async function attendancePage() {
 
       ${canManage() ? createActivityForm() : ''}
 
-      ${renderActivitySection(
-        'Upcoming Activities',
-        upcoming,
-        roster,
-        responses,
-        'upcoming'
-      )}
-
-      ${renderActivitySection(
-        'Past Activities',
-        past,
-        roster,
-        responses,
-        'past'
-      )}
-
+      ${renderActivitySection('Upcoming Activities', upcoming, roster, responses, 'upcoming')}
+      ${renderActivitySection('Past Activities', past, roster, responses, 'past')}
     </main>
   `
 }
@@ -806,13 +758,10 @@ async function attendancePage() {
 function createActivityForm() {
   return `
     <section class="activity-card">
-
       <h3>➕ Create New Activity</h3>
 
       <form id="create-activity-form">
-
         <label>Team / Age Group</label>
-
         <select id="activity-team" required>
           ${TEAMS.map(team => `
             <option value="${team}" ${team === 'U12' ? 'selected' : ''}>
@@ -822,20 +771,13 @@ function createActivityForm() {
         </select>
 
         <label>Activity Type</label>
-
         <select id="activity-type" required>
           <option value="training">Training</option>
           <option value="match">Match</option>
         </select>
 
         <label>Activity Title</label>
-
-        <input
-          id="activity-title"
-          type="text"
-          placeholder="e.g. U12 Training"
-          required
-        >
+        <input id="activity-title" type="text" placeholder="e.g. U12 Training" required>
 
         <label>Date</label>
         <input id="activity-date" type="date" required>
@@ -844,25 +786,15 @@ function createActivityForm() {
         <input id="activity-time" type="time" required>
 
         <label>Venue</label>
-
-        <input
-          id="activity-venue"
-          type="text"
-          placeholder="Enter venue"
-          required
-        >
+        <input id="activity-venue" type="text" placeholder="Enter venue" required>
 
         <label class="publish-option">
           <input id="activity-published" type="checkbox" checked>
           Publish to parents immediately
         </label>
 
-        <button type="submit" class="primary-btn">
-          Create Activity
-        </button>
-
+        <button type="submit" class="primary-btn">Create Activity</button>
       </form>
-
     </section>
   `
 }
@@ -870,7 +802,6 @@ function createActivityForm() {
 function renderActivitySection(title, activities, roster, responses, sectionType) {
   return `
     <section class="activity-section">
-
       <div class="section-heading">
         <h3>${title}</h3>
         <span class="muted">${activities.length} activities</span>
@@ -886,7 +817,6 @@ function renderActivitySection(title, activities, roster, responses, sectionType
           </div>
         `
       }
-
     </section>
   `
 }
@@ -912,80 +842,60 @@ function renderActivityCard(activity, roster, responses, sectionType) {
 
   return `
     <details class="activity-card collapsible-activity">
-
       <summary class="activity-summary">
-
         <div class="activity-summary-main">
-
           <div class="activity-type-icon">
             ${activity.activity_type === 'match' ? '🏆' : '⚽'}
           </div>
 
           <div class="activity-summary-info">
-
             <strong>${esc(activity.title)}</strong>
-
             <small>
               ${esc(activity.age_group || 'All Teams')}
               · ${formatDate(activity.activity_date)}
             </small>
-
             <small>
               ${esc(formatTime(activity.start_time))}
               ${activity.venue ? ' · ' + esc(activity.venue) : ''}
             </small>
-
           </div>
-
         </div>
-
         <span class="collapse-arrow">⌄</span>
-
       </summary>
 
       <div class="activity-content">
-
         <div class="activity-meta">
-
           <div>
             <label>Team</label>
             <strong>${esc(activity.age_group || 'All Teams')}</strong>
           </div>
-
           <div>
             <label>Date</label>
             <strong>${formatDate(activity.activity_date)}</strong>
           </div>
-
           <div>
             <label>Time</label>
             <strong>${esc(formatTime(activity.start_time))}</strong>
           </div>
-
           <div>
             <label>Venue</label>
             <strong>${esc(activity.venue || '-')}</strong>
           </div>
-
         </div>
 
         <div class="attendance-summary">
-
           <div class="attendance-stat">
             <strong>${attending}</strong>
             <small>Attending</small>
           </div>
-
           <div class="attendance-stat">
             <strong>${absent}</strong>
             <small>Absent</small>
           </div>
-
           <div class="attendance-stat">
             <strong>${Math.max(0, unanswered)}</strong>
             <small>No response</small>
           </div>
-
         </div>
 
         <h4>Player Attendance</h4>
@@ -996,12 +906,7 @@ function renderActivityCard(activity, roster, responses, sectionType) {
                 item => item.player_id === player.id
               )
 
-              return renderAttendancePlayer(
-                player,
-                response,
-                activity,
-                sectionType
-              )
+              return renderAttendancePlayer(player, response, activity, sectionType)
             }).join('')
           : `
             <div class="empty-state">
@@ -1012,7 +917,6 @@ function renderActivityCard(activity, roster, responses, sectionType) {
 
         ${canManage() ? `
           <div class="activity-admin-actions">
-
             <button
               class="delete-btn"
               data-action="delete-activity"
@@ -1021,12 +925,9 @@ function renderActivityCard(activity, roster, responses, sectionType) {
             >
               Delete Activity
             </button>
-
           </div>
         ` : ''}
-
       </div>
-
     </details>
   `
 }
@@ -1034,46 +935,29 @@ function renderActivityCard(activity, roster, responses, sectionType) {
 function renderAttendancePlayer(player, response, activity, sectionType) {
   const answer = response?.answer || ''
   const isParent = profile.role === 'parent'
-
   const canRespond = isParent && sectionType === 'upcoming'
 
   return `
     <div class="attendance-player">
-
       <div class="attendance-player-info">
-
         <strong>${esc(player.name)}</strong>
-
         <small>
           ${player.jersey_number !== null && player.jersey_number !== undefined
             ? '#' + esc(player.jersey_number)
             : ''}
         </small>
-
       </div>
 
       ${canRespond ? `
-
         <div class="attendance-controls">
-
           <select
             class="attendance-select"
             data-player="${player.id}"
             data-activity="${activity.id}"
           >
-
-            <option value="" ${!answer ? 'selected' : ''}>
-              Select
-            </option>
-
-            <option value="yes" ${answer === 'yes' ? 'selected' : ''}>
-              Attending
-            </option>
-
-            <option value="no" ${answer === 'no' ? 'selected' : ''}>
-              Absent
-            </option>
-
+            <option value="" ${!answer ? 'selected' : ''}>Select</option>
+            <option value="yes" ${answer === 'yes' ? 'selected' : ''}>Attending</option>
+            <option value="no" ${answer === 'no' ? 'selected' : ''}>Absent</option>
           </select>
 
           ${answer === 'no' ? `
@@ -1095,32 +979,19 @@ function renderAttendancePlayer(player, response, activity, sectionType) {
           >
             Save
           </button>
-
         </div>
-
       ` : `
-
         <div class="attendance-status ${
           answer === 'yes' ? 'status-yes' :
           answer === 'no' ? 'status-no' : 'status-pending'
         }">
-
-          ${answer === 'yes'
-            ? 'Attending'
-            : answer === 'no'
-              ? 'Absent'
-              : 'No response'}
-
+          ${answer === 'yes' ? 'Attending' : answer === 'no' ? 'Absent' : 'No response'}
         </div>
 
         ${answer === 'no' && response?.absence_reason ? `
-          <small class="absence-note">
-            ${esc(response.absence_reason)}
-          </small>
+          <small class="absence-note">${esc(response.absence_reason)}</small>
         ` : ''}
-
       `}
-
     </div>
   `
 }
@@ -1131,7 +1002,6 @@ function renderAttendancePlayer(player, response, activity, sectionType) {
 
 async function createActivity(event) {
   event.preventDefault()
-
   if (!canManage()) return
 
   const team = document.querySelector('#activity-team').value
@@ -1262,17 +1132,11 @@ function placeholderPage(title, icon, message) {
     ${header()}
 
     <main class="container">
-
       ${backButton()}
-
       <div class="page-heading">
         <h2>${icon} ${title}</h2>
       </div>
-
-      <div class="empty-state">
-        ${message}
-      </div>
-
+      <div class="empty-state">${message}</div>
     </main>
   `
 }
@@ -1290,40 +1154,27 @@ async function render() {
   try {
     if (currentPage === 'home') {
       root.innerHTML = homePage()
-    }
-
-    else if (currentPage === 'roster') {
+    } else if (currentPage === 'roster') {
       root.innerHTML = rosterPage()
-    }
-
-    else if (currentPage === 'profile') {
+    } else if (currentPage === 'profile') {
       root.innerHTML = profilePage()
-    }
-
-    else if (currentPage === 'player') {
+    } else if (currentPage === 'player') {
       root.innerHTML = playerPage()
-    }
-
-    else if (currentPage === 'attendance') {
+    } else if (currentPage === 'attendance') {
       await attendancePage()
-    }
-
-    else if (currentPage === 'payment') {
+    } else if (currentPage === 'payment') {
       root.innerHTML = placeholderPage(
         'Payment',
         '💳',
         'Payment information will be available here.'
       )
-    }
-
-    else if (currentPage === 'videos') {
+    } else if (currentPage === 'videos') {
       root.innerHTML = placeholderPage(
         'Videos',
         '🎬',
         'Academy videos will be available here.'
       )
     }
-
   } catch (error) {
     console.error(error)
 
@@ -1351,74 +1202,51 @@ root.addEventListener('click', async event => {
   try {
     if (action === 'choose-parent') {
       loginType = 'parent'
+      isSigningUp = false
       render()
-    }
-
-    else if (action === 'choose-staff') {
+    } else if (action === 'choose-staff') {
       loginType = 'staff'
+      isSigningUp = false
       render()
-    }
-
-    else if (action === 'change-login') {
+    } else if (action === 'change-login') {
       loginType = null
       isSigningUp = false
       render()
-    }
-
-    else if (action === 'toggle-signup') {
+    } else if (action === 'toggle-signup') {
       isSigningUp = !isSigningUp
       render()
-    }
-
-    else if (action === 'logout') {
+    } else if (action === 'logout') {
       await logout()
-    }
-
-    else if (action === 'home') {
+    } else if (action === 'home') {
       currentPage = 'home'
       render()
-    }
-
-    else if (action === 'page') {
+    } else if (action === 'page') {
       currentPage = target.dataset.page
       render()
-    }
-
-    else if (action === 'team') {
+    } else if (action === 'team') {
       selectedTeam = target.dataset.team
       currentPage = 'roster'
       render()
-    }
-
-    else if (action === 'player') {
+    } else if (action === 'player') {
       selectedPlayer = target.dataset.player
       currentPage = 'player'
       render()
-    }
-
-    else if (action === 'profile-back') {
+    } else if (action === 'profile-back') {
       currentPage = 'profile'
       render()
-    }
-
-    else if (action === 'save-player') {
+    } else if (action === 'save-player') {
       await savePlayerProfile()
-    }
-
-    else if (action === 'save-attendance') {
+    } else if (action === 'save-attendance') {
       await saveAttendance(
         target.dataset.player,
         target.dataset.activity
       )
-    }
-
-    else if (action === 'delete-activity') {
+    } else if (action === 'delete-activity') {
       await deleteActivity(
         target.dataset.activity,
         target.dataset.title
       )
     }
-
   } catch (error) {
     console.error(error)
     showMessage(error.message || 'An unexpected error occurred.')
