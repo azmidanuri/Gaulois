@@ -67,8 +67,8 @@ function renderLogin(message='') {
   shell(`
     <section class="login card">
       <div class="eyebrow">Welcome to the academy</div>
-      <h1>Parent portal</h1>
-      <p class="sub">Sign in to manage your child's availability.</p>
+      <h1>Parent/Player portal</h1>
+      <p class="sub">Sign in to access your player profile.</p>
 
       ${message?`<div class="notice">${esc(message)}</div>`:''}
 
