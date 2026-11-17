@@ -12,11 +12,14 @@ let profile = null
 let children = []
 let activities = []
 let responses = []
+let reviews = []
 let activePlayer = null
 let currentTab = 'home'
 let parentSubTab = 'activities'
 let staffGroup = 'U12'
 let profileGroup = 'U10'
+let loginMode = 'parent'
+let loginAttemptMode = null
 let recoveryMode = false
 
 const esc = (v = '') =>
@@ -48,6 +51,7 @@ const toast = msg => {
 }
 
 const isStaff = () => ['admin', 'coach'].includes(profile?.role)
+const isAdmin = () => profile?.role === 'admin'
 
 const responseFor = (activityId, playerId) =>
   responses.find(r =>
@@ -55,11 +59,37 @@ const responseFor = (activityId, playerId) =>
     r.player_id === playerId
   )
 
+const reviewFor = activityId =>
+  reviews.find(r => r.activity_id === activityId)
+
 const groupPlayers = group =>
   children.filter(p => p.age_group === group)
 
 const groupActivities = group =>
   activities.filter(a => (a.age_group || 'U12') === group)
+
+function activityHasEnded(activity) {
+  if (!activity?.activity_date) return false
+
+  const now = new Date()
+  const today = [
+    now.getFullYear(),
+    String(now.getMonth() + 1).padStart(2, '0'),
+    String(now.getDate()).padStart(2, '0')
+  ].join('-')
+
+  if (activity.activity_date < today) return true
+  if (activity.activity_date > today) return false
+
+  // If no end time was entered, unlock the review the following day.
+  if (!activity.end_time) return false
+
+  const currentTime =
+    `${String(now.getHours()).padStart(2, '0')}:` +
+    `${String(now.getMinutes()).padStart(2, '0')}`
+
+  return currentTime >= String(activity.end_time).slice(0, 5)
+}
 
 function addPortalStyles() {
   if (document.querySelector('#portalStyles')) return
@@ -93,16 +123,22 @@ function addPortalStyles() {
     .subtabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
     .subtabs button{border:1px solid var(--border,#ddd);background:transparent;border-radius:20px;padding:9px 15px;cursor:pointer}
     .subtabs button.active{background:#172d50;color:white;border-color:#172d50}
-
     .group-switch{display:flex;gap:10px;margin:14px 0 20px}
     .group-switch button{flex:1;border:1px solid var(--border,#ddd);background:transparent;border-radius:12px;padding:13px 20px;cursor:pointer;font-weight:600}
     .group-switch button.active{background:#172d50;color:white;border-color:#172d50}
-
     .roster-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
     .roster-player{padding:12px;border:1px solid var(--border,#ddd);border-radius:10px}
     .staff-section{margin-top:18px}
     .profile-group-heading{margin:8px 0 4px}
     .profile-player-count{font-size:13px;color:var(--muted,#777);margin-bottom:14px}
+    .login-mode-switch{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:18px 0}
+    .login-mode-switch button{border:1px solid var(--border,#ddd);background:transparent;border-radius:10px;padding:12px 8px;cursor:pointer;font-weight:600}
+    .login-mode-switch button.active{background:#172d50;color:white;border-color:#172d50}
+    .review-box{background:var(--card,#fff);border:1px solid var(--border,#ddd);border-radius:12px;padding:14px;margin-top:14px}
+    .review-box h4{margin:0 0 8px}
+    .review-note{white-space:pre-wrap;line-height:1.6;margin:8px 0 0}
+    .review-pending{font-size:13px;color:var(--muted,#777);margin-top:10px}
+    .review-form textarea{width:100%;min-height:110px;box-sizing:border-box}
     @media(max-width:480px){
       .portal-menu{gap:10px}
       .portal-menu-card{padding:15px;min-height:135px}
@@ -138,20 +174,38 @@ function shell(content = '') {
     children = []
     activities = []
     responses = []
+    reviews = []
+    loginAttemptMode = null
     recoveryMode = false
     currentTab = 'home'
     renderLogin()
   })
 }
 
+// LOGIN
 function renderLogin(message = '') {
   shell(`
     <section class="login card">
       <div class="eyebrow">Welcome to the academy</div>
-      <h1>Parent/Player portal</h1>
-      <p class="sub">Sign in to access your player profile.</p>
+      <h1>${loginMode === 'coach' ? 'Coach Login' : 'Parent / Admin Login'}</h1>
+      <p class="sub">
+        ${loginMode === 'coach'
+          ? 'Sign in with your academy coach account.'
+          : 'Sign in to access your family or administration portal.'}
+      </p>
 
       ${message ? `<div class="notice">${esc(message)}</div>` : ''}
+
+      <div class="login-mode-switch">
+        <button type="button" id="parentLoginMode"
+          class="${loginMode === 'parent' ? 'active' : ''}">
+          Parent / Admin
+        </button>
+        <button type="button" id="coachLoginMode"
+          class="${loginMode === 'coach' ? 'active' : ''}">
+          Coach Login
+        </button>
+      </div>
 
       <form id="loginForm">
         <div class="field">
@@ -169,30 +223,45 @@ function renderLogin(message = '') {
         <button type="button" class="btn small" id="forgotPassword">Forgot password?</button>
       </p>
 
-      <div class="divider"></div>
+      ${loginMode === 'parent' ? `
+        <div class="divider"></div>
+        <details>
+          <summary>First time here? Create a parent account</summary>
+          <p class="muted smalltext">Use the email address provided to the academy. The academy must link your account to your child before attendance can be submitted.</p>
 
-      <details>
-        <summary>First time here? Create a parent account</summary>
-        <p class="muted smalltext">Use the email address provided to the academy. The academy must link your account to your child before attendance can be submitted.</p>
-
-        <form id="signupForm">
-          <div class="field">
-            <label>Your full name</label>
-            <input id="fullName" required>
-          </div>
-          <div class="field">
-            <label>Email address</label>
-            <input id="newEmail" type="email" required>
-          </div>
-          <div class="field">
-            <label>Create password</label>
-            <input id="newPassword" type="password" minlength="6" required>
-          </div>
-          <button class="btn wide" type="submit">Create account</button>
-        </form>
-      </details>
+          <form id="signupForm">
+            <div class="field">
+              <label>Your full name</label>
+              <input id="fullName" required>
+            </div>
+            <div class="field">
+              <label>Email address</label>
+              <input id="newEmail" type="email" required>
+            </div>
+            <div class="field">
+              <label>Create password</label>
+              <input id="newPassword" type="password" minlength="6" required>
+            </div>
+            <button class="btn wide" type="submit">Create account</button>
+          </form>
+        </details>
+      ` : `
+        <p class="muted smalltext" style="text-align:center">
+          Coach accounts are created by the academy administrator.
+        </p>
+      `}
     </section>
   `)
+
+  document.querySelector('#parentLoginMode').addEventListener('click', () => {
+    loginMode = 'parent'
+    renderLogin()
+  })
+
+  document.querySelector('#coachLoginMode').addEventListener('click', () => {
+    loginMode = 'coach'
+    renderLogin()
+  })
 
   document.querySelector('#loginForm').addEventListener('submit', async e => {
     e.preventDefault()
@@ -200,9 +269,14 @@ function renderLogin(message = '') {
     const email = document.querySelector('#email').value.trim()
     const password = document.querySelector('#password').value
 
+    loginAttemptMode = loginMode
+
     const { error } = await supabase.auth.signInWithPassword({ email, password })
 
-    if (error) return renderLogin(error.message)
+    if (error) {
+      loginAttemptMode = null
+      return renderLogin(error.message)
+    }
 
     await loadSession()
   })
@@ -227,7 +301,7 @@ function renderLogin(message = '') {
     toast('Password reset email sent. Check your inbox.')
   })
 
-  document.querySelector('#signupForm').addEventListener('submit', async e => {
+  document.querySelector('#signupForm')?.addEventListener('submit', async e => {
     e.preventDefault()
 
     const full_name = document.querySelector('#fullName').value.trim()
@@ -251,6 +325,7 @@ function renderLogin(message = '') {
           return
         }
 
+        loginAttemptMode = null
         await loadSession()
       } else {
         renderLogin('Account created. Check your email to confirm it, then sign in.')
@@ -310,11 +385,13 @@ function renderResetPassword() {
     profile = null
     children = []
     recoveryMode = false
+    loginAttemptMode = null
 
     renderLogin('Password updated successfully. Please sign in with your new password.')
   })
 }
 
+// LOAD ACCOUNT AND CHECK LOGIN ROLE
 async function loadSession() {
   const { data: { user: current }, error: userError } = await supabase.auth.getUser()
 
@@ -341,6 +418,15 @@ async function loadSession() {
   }
 
   if (!p) {
+    if (loginAttemptMode === 'coach') {
+      await supabase.auth.signOut()
+      user = null
+      loginAttemptMode = null
+      loginMode = 'coach'
+      renderLogin('This account does not have a coach profile. Please contact the academy administrator.')
+      return
+    }
+
     shell(`
       <section class="login card">
         <div class="eyebrow">Complete your account</div>
@@ -370,12 +456,35 @@ async function loadSession() {
         return
       }
 
+      loginAttemptMode = null
       await loadSession()
     })
 
     return
   }
 
+  // Enforce the login button selected by the user.
+  if (loginAttemptMode === 'coach' && p.role !== 'coach') {
+    await supabase.auth.signOut()
+    user = null
+    profile = null
+    loginAttemptMode = null
+    loginMode = 'coach'
+    renderLogin('This account is not registered as a coach. Please use Parent / Admin Login or contact the academy.')
+    return
+  }
+
+  if (loginAttemptMode === 'parent' && p.role === 'coach') {
+    await supabase.auth.signOut()
+    user = null
+    profile = null
+    loginAttemptMode = null
+    loginMode = 'parent'
+    renderLogin('This is a coach account. Please use Coach Login.')
+    return
+  }
+
+  loginAttemptMode = null
   profile = p
   currentTab = 'home'
 
@@ -387,43 +496,50 @@ async function loadSession() {
   }
 }
 
+// LOAD DATA
 async function loadData() {
   const activityQuery = supabase.from('activities')
     .select('*')
     .order('activity_date', { ascending: true })
 
   if (isStaff()) {
-    const [aRes, pRes, rRes] = await Promise.all([
+    const [aRes, pRes, rRes, reviewRes] = await Promise.all([
       activityQuery,
       supabase.from('players')
         .select('id,name,age_group')
         .in('age_group', ['U10', 'U12'])
         .order('name'),
-      supabase.from('responses').select('*')
+      supabase.from('responses').select('*'),
+      supabase.from('activity_reviews').select('*')
     ])
 
     if (aRes.error) throw aRes.error
     if (pRes.error) throw pRes.error
     if (rRes.error) throw rRes.error
+    if (reviewRes.error) throw reviewRes.error
 
     activities = aRes.data || []
     children = pRes.data || []
     responses = rRes.data || []
+    reviews = reviewRes.data || []
   } else {
-    const [aRes, linkRes, rRes] = await Promise.all([
+    const [aRes, linkRes, rRes, reviewRes] = await Promise.all([
       activityQuery,
       supabase.from('parent_players')
         .select('player_id')
         .eq('parent_id', user.id),
-      supabase.from('responses').select('*')
+      supabase.from('responses').select('*'),
+      supabase.from('activity_reviews').select('*')
     ])
 
     if (aRes.error) throw aRes.error
     if (linkRes.error) throw linkRes.error
     if (rRes.error) throw rRes.error
+    if (reviewRes.error) throw reviewRes.error
 
     activities = aRes.data || []
     responses = rRes.data || []
+    reviews = reviewRes.data || []
 
     const ids = (linkRes.data || []).map(x => x.player_id)
 
@@ -483,11 +599,13 @@ function menuCards() {
         <p>Training, matches and availability</p>
       </button>
 
-      <button class="portal-menu-card" data-page="payment">
-        <div class="portal-menu-icon">💳</div>
-        <h2>Payment</h2>
-        <p>Academy fees and payment records</p>
-      </button>
+      ${!profile || profile.role !== 'coach' ? `
+        <button class="portal-menu-card" data-page="payment">
+          <div class="portal-menu-icon">💳</div>
+          <h2>Payment</h2>
+          <p>Academy fees and payment records</p>
+        </button>
+      ` : ''}
 
       <button class="portal-menu-card" data-page="videos">
         <div class="portal-menu-icon">🎬</div>
@@ -501,7 +619,16 @@ function menuCards() {
 function bindMenuCards() {
   document.querySelectorAll('[data-page]').forEach(button => {
     button.addEventListener('click', () => {
-      currentTab = button.dataset.page
+      const page = button.dataset.page
+
+      if (page === 'payment' && profile?.role === 'coach') {
+        toast('Coaches do not have access to Payment.')
+        currentTab = 'home'
+        renderApp()
+        return
+      }
+
+      currentTab = page
       renderApp()
     })
   })
@@ -555,6 +682,14 @@ function renderParentHome() {
 
 // SHARED PORTAL PAGES
 function renderPortalPage(staff) {
+  // Additional direct-access protection for coaches.
+  if (currentTab === 'payment' && profile?.role === 'coach') {
+    currentTab = 'home'
+    toast('Coaches do not have access to Payment.')
+    renderApp()
+    return
+  }
+
   const pageNames = {
     profile: 'Player Profile',
     attendance: 'Attendance',
@@ -573,7 +708,7 @@ function renderPortalPage(staff) {
         <h1>${pageNames[currentTab] || 'Academy Portal'}</h1>
         <p class="sub">${esc(profile?.full_name || '')}</p>
       </div>
-      <span class="tag">${staff ? 'COACH / ADMIN' : 'PARENT PORTAL'}</span>
+      <span class="tag">${staff ? (isAdmin() ? 'ADMIN' : 'COACH') : 'PARENT PORTAL'}</span>
     </div>
 
     <section id="portalPage"></section>
@@ -604,8 +739,6 @@ function renderPlayerProfile(staff) {
     return
   }
 
-  // Staff can switch between U10 and U12.
-  // Parents only see their own linked players.
   if (staff) {
     const availablePlayers = groupPlayers(profileGroup)
 
@@ -620,17 +753,10 @@ function renderPlayerProfile(staff) {
         <h2>Select age group</h2>
 
         <div class="group-switch">
-          <button
-            class="${profileGroup === 'U10' ? 'active' : ''}"
-            data-profile-group="U10"
-            type="button"
-          >U10</button>
-
-          <button
-            class="${profileGroup === 'U12' ? 'active' : ''}"
-            data-profile-group="U12"
-            type="button"
-          >U12</button>
+          <button class="${profileGroup === 'U10' ? 'active' : ''}"
+            data-profile-group="U10" type="button">U10</button>
+          <button class="${profileGroup === 'U12' ? 'active' : ''}"
+            data-profile-group="U12" type="button">U12</button>
         </div>
 
         <h3 class="profile-group-heading">${profileGroup} Player Profiles</h3>
@@ -649,9 +775,7 @@ function renderPlayerProfile(staff) {
               `).join('')}
             </select>
           </div>
-        ` : `
-          <p class="empty">No players found in ${profileGroup}.</p>
-        `}
+        ` : `<p class="empty">No players found in ${profileGroup}.</p>`}
       </div>
 
       ${player ? `
@@ -679,17 +803,14 @@ function renderPlayerProfile(staff) {
       ` : ''}
     `
 
-    // Age group buttons
     document.querySelectorAll('[data-profile-group]').forEach(button => {
       button.addEventListener('click', () => {
         profileGroup = button.dataset.profileGroup
-        const firstPlayer = groupPlayers(profileGroup)[0]
-        activePlayer = firstPlayer?.id || null
+        activePlayer = groupPlayers(profileGroup)[0]?.id || null
         renderPlayerProfile(true)
       })
     })
 
-    // Individual player selector
     document.querySelector('#profilePlayerSelect')?.addEventListener('change', e => {
       activePlayer = e.target.value
       renderPlayerProfile(true)
@@ -698,7 +819,6 @@ function renderPlayerProfile(staff) {
     return
   }
 
-  // Parent profile page
   const player = children.find(p => p.id === activePlayer) || children[0]
 
   panel.innerHTML = `
@@ -806,6 +926,7 @@ function renderAttendancePage() {
         <h2>My response history</h2>
         ${rows.length ? rows.map(r => {
           const a = activities.find(x => x.id === r.activity_id)
+          const review = a ? reviewFor(a.id) : null
 
           return a ? `
             <div class="activity">
@@ -815,6 +936,12 @@ function renderAttendancePage() {
               </div>
               <p>${dateLabel(a.activity_date)}</p>
               <p>${r.absence_reason ? `Reason: ${esc(r.absence_reason)}` : 'No reason supplied'}</p>
+              ${review ? `
+                <div class="review-box">
+                  <h4>Coach's session review</h4>
+                  <p class="review-note">${esc(review.review_note)}</p>
+                </div>
+              ` : ''}
             </div>
           ` : ''
         }).join('') : '<div class="empty">No responses submitted yet.</div>'}
@@ -894,6 +1021,11 @@ function renderStaffAttendance() {
           </div>
 
           <div class="field">
+            <label>End time</label>
+            <input id="actEndTime" type="time">
+          </div>
+
+          <div class="field">
             <label>Venue</label>
             <input id="actVenue">
           </div>
@@ -915,7 +1047,9 @@ function renderStaffAttendance() {
 
     <div class="staff-section card">
       <h2>${staffGroup} activities and availability</h2>
-      ${groupActs.length ? groupActs.map(a => staffActivityReport(a, players)).join('') : '<p class="empty">No activities published for this group yet.</p>'}
+      ${groupActs.length
+        ? groupActs.map(a => staffActivityReport(a, players)).join('')
+        : '<p class="empty">No activities published for this group yet.</p>'}
     </div>
   `
 
@@ -927,12 +1061,18 @@ function renderStaffAttendance() {
   })
 
   document.querySelector('#activityForm').addEventListener('submit', createActivity)
+
+  document.querySelectorAll('[data-save-review]').forEach(button => {
+    button.addEventListener('click', () => saveReview(button.dataset.saveReview))
+  })
 }
 
 function staffActivityReport(a, players) {
   const rs = responses.filter(r => r.activity_id === a.id)
   const count = v => rs.filter(r => r.answer === v).length
   const answered = players.filter(p => rs.some(r => r.player_id === p.id)).length
+  const existingReview = reviewFor(a.id)
+  const canReview = a.activity_type === 'training' && activityHasEnded(a)
 
   return `
     <div class="activity">
@@ -940,7 +1080,11 @@ function staffActivityReport(a, players) {
         <div>
           <span class="tag ${a.activity_type === 'match' ? 'match' : ''}">${esc(a.activity_type)}</span>
           <h3>${esc(a.title)}</h3>
-          <p>${dateLabel(a.activity_date)} ${a.start_time ? '· ' + esc(String(a.start_time).slice(0, 5)) : ''}</p>
+          <p>
+            ${dateLabel(a.activity_date)}
+            ${a.start_time ? '· Start ' + esc(String(a.start_time).slice(0, 5)) : ''}
+            ${a.end_time ? '· End ' + esc(String(a.end_time).slice(0, 5)) : ''}
+          </p>
           <p>${a.venue ? esc(a.venue) : 'Venue to be confirmed'}</p>
         </div>
         <b>${count('yes')} / ${players.length} yes</b>
@@ -972,13 +1116,92 @@ function staffActivityReport(a, players) {
           </tbody>
         </table>
       </div>
+
+      ${a.activity_type === 'training' ? `
+        <div class="review-box">
+          <h4>Post-training review</h4>
+          ${canReview ? `
+            <p class="muted smalltext">
+              This training session has ended. Add a review for parents and players.
+            </p>
+            <div class="field review-form">
+              <label>Session review note</label>
+              <textarea id="review-${a.id}" placeholder="Write a short note about the session, focus areas, progress and things to work on...">${esc(existingReview?.review_note || '')}</textarea>
+            </div>
+            <button class="btn primary small" data-save-review="${a.id}" type="button">
+              ${existingReview ? 'Update review' : 'Save review'}
+            </button>
+            ${existingReview ? '<p class="muted smalltext">A review has already been saved and is visible to linked parents.</p>' : ''}
+          ` : `
+            <p class="review-pending">
+              The review section will become available after the training session ends.
+              ${a.end_time ? `Scheduled end time: ${esc(String(a.end_time).slice(0, 5))}.` : 'No end time was entered; it will become available the following day.'}
+            </p>
+          `}
+        </div>
+      ` : ''}
     </div>
   `
 }
 
-// PAYMENT PLACEHOLDER
+// SAVE OR UPDATE A TRAINING REVIEW
+async function saveReview(activityId) {
+  if (!isStaff()) {
+    toast('You do not have permission to save a review.')
+    return
+  }
+
+  const activity = activities.find(a => a.id === activityId)
+
+  if (!activity || activity.activity_type !== 'training') {
+    toast('Reviews are only available for training sessions.')
+    return
+  }
+
+  if (!activityHasEnded(activity)) {
+    toast('The review will be available after the session ends.')
+    return
+  }
+
+  const textarea = document.querySelector(`#review-${CSS.escape(activityId)}`)
+  const review_note = textarea?.value.trim()
+
+  if (!review_note) {
+    toast('Please enter a review note first.')
+    return
+  }
+
+  const payload = {
+    activity_id: activityId,
+    review_note,
+    created_by: user.id,
+    updated_at: new Date().toISOString()
+  }
+
+  const { error } = await supabase.from('activity_reviews')
+    .upsert(payload, { onConflict: 'activity_id' })
+
+  if (error) {
+    toast(error.message)
+    return
+  }
+
+  await loadData()
+  renderApp()
+  toast('Training review saved. Parents can now view it.')
+}
+
+// PAYMENT
 function renderPaymentPage() {
   const panel = document.querySelector('#portalPage')
+
+  // Do not allow coaches to view the Payment page.
+  if (profile?.role === 'coach') {
+    currentTab = 'home'
+    toast('Coaches do not have access to Payment.')
+    renderApp()
+    return
+  }
 
   panel.innerHTML = `
     <div class="card">
@@ -1005,7 +1228,7 @@ function renderPaymentPage() {
   `
 }
 
-// VIDEOS PLACEHOLDER
+// VIDEOS
 function renderVideosPage() {
   const panel = document.querySelector('#portalPage')
 
@@ -1043,8 +1266,11 @@ function statusTag(answer) {
   return `<span class="status ${answer || 'pending'}">${label}</span>`
 }
 
+// PARENT ACTIVITY CARD
 function activityCard(a, player) {
   const r = responseFor(a.id, player.id)
+  const review = reviewFor(a.id)
+  const ended = activityHasEnded(a)
 
   return `
     <article class="card activity">
@@ -1054,9 +1280,22 @@ function activityCard(a, player) {
       </div>
 
       <h2>${esc(a.title)}</h2>
-      <p>${dateLabel(a.activity_date)} ${a.start_time ? `· ${esc(String(a.start_time).slice(0, 5))}` : ''}</p>
+      <p>
+        ${dateLabel(a.activity_date)}
+        ${a.start_time ? `· ${esc(String(a.start_time).slice(0, 5))}` : ''}
+        ${a.end_time ? `– ${esc(String(a.end_time).slice(0, 5))}` : ''}
+      </p>
       <p>${a.opponent ? `Opponent: ${esc(a.opponent)} · ` : ''}${a.venue ? `Venue: ${esc(a.venue)}` : 'Venue to be confirmed'}</p>
       ${a.notes ? `<p>${esc(a.notes)}</p>` : ''}
+
+      ${a.activity_type === 'training' && review ? `
+        <div class="review-box">
+          <h4>Coach's session review</h4>
+          <p class="review-note">${esc(review.review_note)}</p>
+        </div>
+      ` : a.activity_type === 'training' && ended ? `
+        <p class="review-pending">The coach has not published a session review yet.</p>
+      ` : ''}
 
       <div class="responsearea">
         <b>Can ${esc(player.name)} attend?</b>
@@ -1158,8 +1397,8 @@ function renderStaffHome() {
   shell(`
     <div class="portal-welcome">
       <div class="eyebrow">Gaulois Aerion Academy</div>
-      <h1>Hello, ${esc(profile?.full_name || 'Coach')}</h1>
-      <p class="sub">Coach & administrator portal.</p>
+      <h1>Hello, ${esc(profile?.full_name || (isAdmin() ? 'Admin' : 'Coach'))}</h1>
+      <p class="sub">${isAdmin() ? 'Academy administration portal.' : 'Coach portal.'}</p>
     </div>
 
     <div class="grid">
@@ -1179,6 +1418,7 @@ function renderStaffHome() {
   bindMenuCards()
 }
 
+// CREATE ACTIVITY
 async function createActivity(e) {
   e.preventDefault()
 
@@ -1188,6 +1428,7 @@ async function createActivity(e) {
     title: document.querySelector('#actTitle').value.trim(),
     activity_date: document.querySelector('#actDate').value,
     start_time: document.querySelector('#actTime').value || null,
+    end_time: document.querySelector('#actEndTime').value || null,
     venue: document.querySelector('#actVenue').value.trim() || null,
     opponent: document.querySelector('#actOpponent').value.trim() || null,
     notes: document.querySelector('#actNotes').value.trim() || null,
@@ -1230,13 +1471,10 @@ async function init() {
       } else {
         renderLogin()
       }
-      return
     }
 
-    if (event === 'SIGNED_IN' && session?.user && !recoveryMode) {
-      user = session.user
-      loadSession().catch(e => renderLogin(e.message))
-    }
+    // SIGNED_IN is handled by the login form after signInWithPassword.
+    // This avoids running loadSession twice for a new login.
   })
 }
 
