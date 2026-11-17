@@ -18,7 +18,7 @@ let selectedTeam = 'U12'
 let selectedPlayer = null
 let loginType = null
 
-const TEAMS = ['U12', 'U11', 'U10']
+const TEAMS = ['U15', 'U12', 'U11', 'U10']
 
 const POSITIONS = [
   'Goalkeeper',
