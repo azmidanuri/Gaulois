@@ -16,6 +16,7 @@ let activePlayer = null
 let currentTab = 'home'
 let parentSubTab = 'activities'
 let staffGroup = 'U12'
+let profileGroup = 'U10'
 let recoveryMode = false
 
 const esc = (v = '') =>
@@ -92,12 +93,16 @@ function addPortalStyles() {
     .subtabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
     .subtabs button{border:1px solid var(--border,#ddd);background:transparent;border-radius:20px;padding:9px 15px;cursor:pointer}
     .subtabs button.active{background:#172d50;color:white;border-color:#172d50}
-    .group-switch{display:flex;gap:8px;margin:12px 0 18px}
-    .group-switch button{border:1px solid var(--border,#ddd);background:transparent;border-radius:22px;padding:10px 20px;cursor:pointer}
+
+    .group-switch{display:flex;gap:10px;margin:14px 0 20px}
+    .group-switch button{flex:1;border:1px solid var(--border,#ddd);background:transparent;border-radius:12px;padding:13px 20px;cursor:pointer;font-weight:600}
     .group-switch button.active{background:#172d50;color:white;border-color:#172d50}
+
     .roster-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
     .roster-player{padding:12px;border:1px solid var(--border,#ddd);border-radius:10px}
     .staff-section{margin-top:18px}
+    .profile-group-heading{margin:8px 0 4px}
+    .profile-player-count{font-size:13px;color:var(--muted,#777);margin-bottom:14px}
     @media(max-width:480px){
       .portal-menu{gap:10px}
       .portal-menu-card{padding:15px;min-height:135px}
@@ -438,6 +443,17 @@ async function loadData() {
   activePlayer = children.some(p => p.id === activePlayer)
     ? activePlayer
     : (children[0]?.id || null)
+
+  if (!groupPlayers(profileGroup).length) {
+    profileGroup = groupPlayers('U10').length ? 'U10' : 'U12'
+  }
+
+  if (isStaff()) {
+    const selectedGroupPlayers = groupPlayers(profileGroup)
+    if (!selectedGroupPlayers.some(p => p.id === activePlayer)) {
+      activePlayer = selectedGroupPlayers[0]?.id || null
+    }
+  }
 }
 
 // MAIN APP ROUTER
@@ -588,31 +604,112 @@ function renderPlayerProfile(staff) {
     return
   }
 
-  const groups = staff ? ['U10', 'U12'] : [...new Set(children.map(p => p.age_group))]
-  const selectedGroup = staff
-    ? (children.some(p => p.id === activePlayer)
-        ? children.find(p => p.id === activePlayer)?.age_group
-        : groups[0])
-    : null
+  // Staff can switch between U10 and U12.
+  // Parents only see their own linked players.
+  if (staff) {
+    const availablePlayers = groupPlayers(profileGroup)
 
-  const availablePlayers = staff
-    ? groupPlayers(selectedGroup)
-    : children
+    if (!availablePlayers.some(p => p.id === activePlayer)) {
+      activePlayer = availablePlayers[0]?.id || null
+    }
 
-  const player = availablePlayers.find(p => p.id === activePlayer) || availablePlayers[0]
+    const player = availablePlayers.find(p => p.id === activePlayer)
 
-  if (!player) {
-    panel.innerHTML = '<div class="card empty">No players in this group.</div>'
+    panel.innerHTML = `
+      <div class="card">
+        <h2>Select age group</h2>
+
+        <div class="group-switch">
+          <button
+            class="${profileGroup === 'U10' ? 'active' : ''}"
+            data-profile-group="U10"
+            type="button"
+          >U10</button>
+
+          <button
+            class="${profileGroup === 'U12' ? 'active' : ''}"
+            data-profile-group="U12"
+            type="button"
+          >U12</button>
+        </div>
+
+        <h3 class="profile-group-heading">${profileGroup} Player Profiles</h3>
+        <p class="profile-player-count">
+          ${availablePlayers.length} player${availablePlayers.length === 1 ? '' : 's'} in this age group
+        </p>
+
+        ${availablePlayers.length ? `
+          <div class="field">
+            <label>Select player</label>
+            <select id="profilePlayerSelect">
+              ${availablePlayers.map(p => `
+                <option value="${p.id}" ${p.id === activePlayer ? 'selected' : ''}>
+                  ${esc(p.name)}
+                </option>
+              `).join('')}
+            </select>
+          </div>
+        ` : `
+          <p class="empty">No players found in ${profileGroup}.</p>
+        `}
+      </div>
+
+      ${player ? `
+        <div class="profile-banner">
+          <div class="profile-avatar">⚽</div>
+          <div class="eyebrow">Gaulois Aerion Academy</div>
+          <h2>${esc(player.name)}</h2>
+          <p>${esc(player.age_group || 'Age group not set')} · Academy Player</p>
+        </div>
+
+        <div class="card">
+          <h2>Player information</h2>
+          <div class="profile-details">
+            <div class="profile-detail"><small>Full name</small><b>${esc(player.name)}</b></div>
+            <div class="profile-detail"><small>Age group</small><b>${esc(player.age_group || 'Not set')}</b></div>
+            <div class="profile-detail"><small>Jersey number</small><b>To be updated</b></div>
+            <div class="profile-detail"><small>Position</small><b>To be updated</b></div>
+            <div class="profile-detail"><small>Date of birth</small><b>To be updated</b></div>
+            <div class="profile-detail"><small>Team</small><b>Gaulois Aerion ${esc(player.age_group || '')}</b></div>
+          </div>
+          <div class="placeholder-note">
+            Player details and photos can be added by the academy in a future update.
+          </div>
+        </div>
+      ` : ''}
+    `
+
+    // Age group buttons
+    document.querySelectorAll('[data-profile-group]').forEach(button => {
+      button.addEventListener('click', () => {
+        profileGroup = button.dataset.profileGroup
+        const firstPlayer = groupPlayers(profileGroup)[0]
+        activePlayer = firstPlayer?.id || null
+        renderPlayerProfile(true)
+      })
+    })
+
+    // Individual player selector
+    document.querySelector('#profilePlayerSelect')?.addEventListener('change', e => {
+      activePlayer = e.target.value
+      renderPlayerProfile(true)
+    })
+
     return
   }
+
+  // Parent profile page
+  const player = children.find(p => p.id === activePlayer) || children[0]
 
   panel.innerHTML = `
     <div class="card childselect">
       <div class="field">
         <label>Select player</label>
         <select id="profilePlayerSelect">
-          ${availablePlayers.map(p => `
-            <option value="${p.id}" ${p.id === player.id ? 'selected' : ''}>${esc(p.name)}</option>
+          ${children.map(p => `
+            <option value="${p.id}" ${p.id === player.id ? 'selected' : ''}>
+              ${esc(p.name)}
+            </option>
           `).join('')}
         </select>
       </div>
@@ -643,7 +740,7 @@ function renderPlayerProfile(staff) {
 
   document.querySelector('#profilePlayerSelect').addEventListener('change', e => {
     activePlayer = e.target.value
-    renderPlayerProfile(staff)
+    renderPlayerProfile(false)
   })
 }
 
@@ -1044,7 +1141,7 @@ async function saveReason(activity_id, player_id) {
   toast('Optional reason saved')
 }
 
-// STAFF PORTAL - SAME FOUR MENUS
+// STAFF PORTAL
 function renderStaffApp() {
   if (currentTab === 'home') {
     renderStaffHome()
