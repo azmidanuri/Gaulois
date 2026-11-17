@@ -63,8 +63,20 @@ function loginPage() {
       ${!loginType ? `
         <div class="login-choice-content"><span class="login-eyebrow">WELCOME</span><h2>Choose your login</h2><p class="login-description">Select your portal to continue</p>
           <div class="login-choice-grid">
-            <button type="button" class="login-choice" data-action="choose-parent"><span class="login-choice-icon">â</span><strong>Parent/Player Login</strong><small>Attendance, activities and player information</small><span class="login-choice-arrow">â</span></button>
-            <button type="button" class="login-choice" data-action="choose-staff"><span class="login-choice-icon">â½</span><strong>Staff Login</strong><small>Manage teams, players and academy activities</small><span class="login-choice-arrow">â</span></button>
+            
+<button type="button" class="login-choice" data-action="choose-parent">
+  <span class="login-choice-icon">P</span>
+  <strong>Parent/Player Login</strong>
+  <small>Attendance, activities and player information</small>
+  <span class="login-choice-arrow">›</span>
+</button>
+
+<button type="button" class="login-choice" data-action="choose-staff">
+  <span class="login-choice-icon">S</span>
+  <strong>Staff Login</strong>
+  <small>Manage teams, players and academy activities</small>
+  <span class="login-choice-arrow">›</span>
+</button>
           </div><p class="login-hint">Select a card to proceed to your login</p>
         </div>` : `
         <div class="login-form-content"><button class="back-btn login-change-btn" data-action="change-login">â Change Login Type</button><span class="login-eyebrow">PORTAL ACCESS</span><h2>${loginType === 'parent' ? 'Parent/Player Login' : 'Staff Login'}</h2><p class="login-description">Enter your account details to continue</p>
