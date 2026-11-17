@@ -4,7 +4,7 @@
 :root {
   font-family: 'Inter', sans-serif;
   color: #172033;
-  background: #f4f6f9;
+  background: #e9edf3;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
 }
@@ -17,10 +17,13 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background: #f4f6f9;
+  background: #e9edf3;
 }
 
-button, input, select, textarea {
+button,
+input,
+select,
+textarea {
   font: inherit;
 }
 
@@ -28,17 +31,31 @@ button {
   cursor: pointer;
 }
 
+/* MAIN APP LAYOUT */
+
+#app {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 30px 16px;
+}
+
 /* HEADER */
 
 .topbar {
+  width: 100%;
+  max-width: 1000px;
   background: #101b30;
   color: white;
-  padding: 18px 20px;
+  padding: 18px 22px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   box-shadow: 0 3px 12px #0002;
+  border-radius: 15px 15px 0 0;
 }
 
 .brand {
@@ -88,9 +105,13 @@ button {
 
 .container {
   width: 100%;
-  max-width: 850px;
-  margin: auto;
-  padding: 25px 18px 50px;
+  max-width: 1000px;
+  min-height: 650px;
+  margin: 0 auto;
+  padding: 30px 28px 55px;
+  background: white;
+  border-radius: 0 0 15px 15px;
+  box-shadow: 0 8px 30px #14213a12;
 }
 
 h2 {
@@ -704,8 +725,8 @@ h3 {
 
 .login-container {
   width: calc(100% - 36px);
-  max-width: 400px;
-  margin: 90px auto;
+  max-width: 430px;
+  margin: auto;
   padding: 30px 23px;
   background: white;
   border-radius: 17px;
@@ -840,11 +861,11 @@ h3 {
   margin-top: 12px;
 }
 
-/* RESPONSIVE */
+/* DESKTOP AND TABLET */
 
 @media (min-width: 650px) {
   .container {
-    padding: 35px 25px 60px;
+    padding: 35px 32px 60px;
   }
 
   .menu-grid {
@@ -866,9 +887,23 @@ h3 {
   }
 }
 
+/* MOBILE */
+
 @media (max-width: 600px) {
+  #app {
+    padding: 0;
+  }
+
   .topbar {
     padding: 14px 13px;
+    border-radius: 0;
+  }
+
+  .container {
+    border-radius: 0;
+    box-shadow: none;
+    min-height: calc(100vh - 73px);
+    padding: 25px 18px 50px;
   }
 
   .portal-logo {
@@ -885,7 +920,7 @@ h3 {
   }
 
   .login-container {
-    margin-top: 55px;
+    margin: auto;
   }
 
   .login-logo {
@@ -906,6 +941,8 @@ h3 {
     padding: 0 15px 15px;
   }
 }
+
+/* SMALL PHONES */
 
 @media (max-width: 380px) {
   .team-card {
@@ -931,10 +968,6 @@ h3 {
     font-size: 11px;
   }
 
-  .login-container {
-    margin-top: 55px;
-  }
-
   .login-options button {
     font-size: 14px;
   }
@@ -949,52 +982,3 @@ h3 {
     width: 100%;
   }
 }
-
-/* CENTRED PORTAL PANEL */
-
-#app {
-  width: 100%;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.topbar {
-  width: 100%;
-  max-width: 1000px;
-  margin: 25px auto 0;
-  border-radius: 14px 14px 0 0;
-}
-
-.container {
-  width: 100%;
-  max-width: 1000px;
-  min-height: 650px;
-  margin: 0 auto 25px;
-  background: #ffffff;
-  border-radius: 0 0 14px 14px;
-  box-shadow: 0 5px 25px #14213a12;
-}
-
-.login-container {
-  margin: auto;
-  width: calc(100% - 36px);
-  max-width: 430px;
-}
-
-/* MOBILE */
-
-@media (max-width: 600px) {
-  .topbar {
-    margin-top: 0;
-    border-radius: 0;
-  }
-
-  .container {
-    border-radius: 0;
-    box-shadow: none;
-    min-height: calc(100vh - 73px);
-  }
-}
-
