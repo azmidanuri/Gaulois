@@ -20,9 +20,7 @@ body {
   background: #f4f6f9;
 }
 
-button,
-input,
-select {
+button, input, select, textarea {
   font: inherit;
 }
 
@@ -226,8 +224,8 @@ h3 {
 .primary-btn {
   width: 100%;
   border: none;
-  background: #c69a35;
-  color: #101b30;
+  background: #0057a8;
+  color: white;
   border-radius: 9px;
   padding: 13px 16px;
   font-size: 14px;
@@ -236,7 +234,7 @@ h3 {
 }
 
 .primary-btn:hover {
-  background: #d6ad51;
+  background: #004582;
 }
 
 .back-btn {
@@ -344,7 +342,7 @@ h3 {
   gap: 10px;
   margin-bottom: 14px;
   padding-bottom: 13px;
-  border-bottom: 2px solid #c69a35;
+  border-bottom: 2px solid #0057a8;
 }
 
 .profile-team-heading h3 {
@@ -468,14 +466,17 @@ h3 {
   margin-top: 20px;
 }
 
-/* ATTENDANCE */
+/* ATTENDANCE AND ACTIVITIES */
 
 .activity-card {
   background: white;
-  border: 1px solid #e5e9ef;
+  border: 1px solid #e1e7ef;
+  border-left: 4px solid #0057a8;
   border-radius: 13px;
-  padding: 18px;
+  padding: 0;
   margin: 16px 0;
+  overflow: hidden;
+  box-shadow: 0 3px 12px #14213a08;
 }
 
 .activity-card h3 {
@@ -487,6 +488,156 @@ h3 {
   font-size: 12px;
   margin: 6px 0;
 }
+
+/* COLLAPSIBLE ACTIVITY */
+
+.activity-card details {
+  width: 100%;
+}
+
+.activity-card summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: white;
+}
+
+.activity-card summary::-webkit-details-marker {
+  display: none;
+}
+
+.activity-card summary::after {
+  content: '+';
+  color: #0057a8;
+  font-size: 24px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.activity-card details[open] summary::after {
+  content: '−';
+}
+
+.activity-summary-info {
+  min-width: 0;
+  flex: 1;
+}
+
+.activity-summary-info strong {
+  display: block;
+  color: #14213a;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.activity-summary-info small {
+  display: block;
+  color: #788397;
+  font-size: 11px;
+  margin-top: 6px;
+}
+
+.activity-content {
+  padding: 0 18px 18px;
+  border-top: 1px solid #edf0f4;
+}
+
+.activity-content h3 {
+  padding-top: 15px;
+}
+
+.activity-team-badge {
+  display: inline-block;
+  background: #e8f1fb;
+  color: #0057a8;
+  border-radius: 20px;
+  padding: 5px 10px;
+  font-size: 10px;
+  font-weight: 800;
+  margin-top: 7px;
+}
+
+.activity-section {
+  margin-top: 28px;
+}
+
+.activity-section-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 2px solid #0057a8;
+  padding-bottom: 11px;
+  margin-bottom: 15px;
+}
+
+.activity-section-heading h3 {
+  margin: 0;
+  color: #14213a;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.activity-section-heading small {
+  color: #8993a3;
+  font-size: 11px;
+}
+
+/* CREATE ACTIVITY FORM */
+
+.activity-form {
+  background: white;
+  border: 1px solid #e5e9ef;
+  border-radius: 14px;
+  padding: 20px;
+  margin: 20px 0 28px;
+  box-shadow: 0 3px 12px #14213a08;
+}
+
+.activity-form h3 {
+  margin: 0 0 17px;
+  color: #14213a;
+}
+
+.activity-form label {
+  display: block;
+  color: #596579;
+  font-size: 12px;
+  font-weight: 700;
+  margin: 13px 0 7px;
+}
+
+.activity-form input,
+.activity-form select,
+.activity-form textarea {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #dfe4eb;
+  border-radius: 8px;
+  background: #f9fafc;
+  color: #172033;
+  font-size: 13px;
+}
+
+.activity-form input:focus,
+.activity-form select:focus,
+.activity-form textarea:focus {
+  outline: none;
+  border-color: #0057a8;
+  box-shadow: 0 0 0 3px #0057a81a;
+}
+
+.activity-form textarea {
+  min-height: 75px;
+  resize: vertical;
+}
+
+/* ATTENDANCE ROWS */
 
 .attendance-row {
   display: flex;
@@ -508,7 +659,7 @@ h3 {
   border-radius: 7px;
   padding: 9px;
   font-size: 12px;
-  max-width: 120px;
+  max-width: 140px;
 }
 
 .absence-reason {
@@ -519,6 +670,34 @@ h3 {
   border: 1px solid #e2e6ed;
   border-radius: 7px;
   font-size: 12px;
+}
+
+/* DELETE ACTIVITY */
+
+.delete-btn {
+  display: inline-block;
+  background: #fff1f1;
+  color: #c62828;
+  border: 1px solid #f1caca;
+  border-radius: 7px;
+  padding: 9px 13px;
+  font-size: 12px;
+  font-weight: 700;
+  margin-top: 15px;
+}
+
+.delete-btn:hover {
+  background: #ffe0e0;
+}
+
+/* PAST ACTIVITIES */
+
+.past-activities .activity-card {
+  border-left-color: #8993a3;
+}
+
+.past-activities .activity-card summary {
+  background: #fafbfc;
 }
 
 /* LOGIN */
@@ -714,6 +893,18 @@ h3 {
     height: 135px;
     margin-bottom: 15px;
   }
+
+  .activity-form {
+    padding: 16px;
+  }
+
+  .activity-card summary {
+    padding: 15px;
+  }
+
+  .activity-content {
+    padding: 0 15px 15px;
+  }
 }
 
 @media (max-width: 380px) {
@@ -746,5 +937,15 @@ h3 {
 
   .login-options button {
     font-size: 14px;
+  }
+
+  .attendance-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .attendance-select {
+    max-width: 100%;
+    width: 100%;
   }
 }
