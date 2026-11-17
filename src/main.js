@@ -81,7 +81,6 @@ function activityHasEnded(activity) {
   if (activity.activity_date < today) return true
   if (activity.activity_date > today) return false
 
-  // If no end time was entered, unlock the review the following day.
   if (!activity.end_time) return false
 
   const currentTime =
@@ -178,6 +177,7 @@ function shell(content = '') {
     loginAttemptMode = null
     recoveryMode = false
     currentTab = 'home'
+    loginMode = 'parent'
     renderLogin()
   })
 }
@@ -187,11 +187,11 @@ function renderLogin(message = '') {
   shell(`
     <section class="login card">
       <div class="eyebrow">Welcome to the academy</div>
-      <h1>${loginMode === 'coach' ? 'Coach Login' : 'Parent / Admin Login'}</h1>
+      <h1>${loginMode === 'staff' ? 'Coach / Admin Login' : 'Parent / Player Login'}</h1>
       <p class="sub">
-        ${loginMode === 'coach'
-          ? 'Sign in with your academy coach account.'
-          : 'Sign in to access your family or administration portal.'}
+        ${loginMode === 'staff'
+          ? 'Sign in using your academy coach or administrator account.'
+          : 'Sign in to access your family and player portal.'}
       </p>
 
       ${message ? `<div class="notice">${esc(message)}</div>` : ''}
@@ -199,11 +199,11 @@ function renderLogin(message = '') {
       <div class="login-mode-switch">
         <button type="button" id="parentLoginMode"
           class="${loginMode === 'parent' ? 'active' : ''}">
-          Parent / Admin
+          Parent / Player Login
         </button>
-        <button type="button" id="coachLoginMode"
-          class="${loginMode === 'coach' ? 'active' : ''}">
-          Coach Login
+        <button type="button" id="staffLoginMode"
+          class="${loginMode === 'staff' ? 'active' : ''}">
+          Coach / Admin Login
         </button>
       </div>
 
@@ -247,7 +247,7 @@ function renderLogin(message = '') {
         </details>
       ` : `
         <p class="muted smalltext" style="text-align:center">
-          Coach accounts are created by the academy administrator.
+          Coach and admin accounts are created by the academy administrator.
         </p>
       `}
     </section>
@@ -258,8 +258,8 @@ function renderLogin(message = '') {
     renderLogin()
   })
 
-  document.querySelector('#coachLoginMode').addEventListener('click', () => {
-    loginMode = 'coach'
+  document.querySelector('#staffLoginMode').addEventListener('click', () => {
+    loginMode = 'staff'
     renderLogin()
   })
 
@@ -386,6 +386,7 @@ function renderResetPassword() {
     children = []
     recoveryMode = false
     loginAttemptMode = null
+    loginMode = 'parent'
 
     renderLogin('Password updated successfully. Please sign in with your new password.')
   })
@@ -418,12 +419,12 @@ async function loadSession() {
   }
 
   if (!p) {
-    if (loginAttemptMode === 'coach') {
+    if (loginAttemptMode === 'staff') {
       await supabase.auth.signOut()
       user = null
       loginAttemptMode = null
-      loginMode = 'coach'
-      renderLogin('This account does not have a coach profile. Please contact the academy administrator.')
+      loginMode = 'staff'
+      renderLogin('This account does not have a coach or admin profile. Please contact the academy administrator.')
       return
     }
 
@@ -463,24 +464,25 @@ async function loadSession() {
     return
   }
 
-  // Enforce the login button selected by the user.
-  if (loginAttemptMode === 'coach' && p.role !== 'coach') {
+  // Coach / Admin login accepts both staff roles.
+  if (loginAttemptMode === 'staff' && !['coach', 'admin'].includes(p.role)) {
     await supabase.auth.signOut()
     user = null
     profile = null
     loginAttemptMode = null
-    loginMode = 'coach'
-    renderLogin('This account is not registered as a coach. Please use Parent / Admin Login or contact the academy.')
+    loginMode = 'staff'
+    renderLogin('This account is not registered as a coach or admin. Please use Parent / Player Login.')
     return
   }
 
-  if (loginAttemptMode === 'parent' && p.role === 'coach') {
+  // Parent / Player login accepts parent accounts only.
+  if (loginAttemptMode === 'parent' && p.role !== 'parent') {
     await supabase.auth.signOut()
     user = null
     profile = null
     loginAttemptMode = null
     loginMode = 'parent'
-    renderLogin('This is a coach account. Please use Coach Login.')
+    renderLogin('This is a staff account. Please use Coach / Admin Login.')
     return
   }
 
@@ -599,7 +601,7 @@ function menuCards() {
         <p>Training, matches and availability</p>
       </button>
 
-      ${!profile || profile.role !== 'coach' ? `
+      ${profile?.role !== 'coach' ? `
         <button class="portal-menu-card" data-page="payment">
           <div class="portal-menu-icon">💳</div>
           <h2>Payment</h2>
@@ -682,7 +684,6 @@ function renderParentHome() {
 
 // SHARED PORTAL PAGES
 function renderPortalPage(staff) {
-  // Additional direct-access protection for coaches.
   if (currentTab === 'payment' && profile?.role === 'coach') {
     currentTab = 'home'
     toast('Coaches do not have access to Payment.')
@@ -1195,7 +1196,6 @@ async function saveReview(activityId) {
 function renderPaymentPage() {
   const panel = document.querySelector('#portalPage')
 
-  // Do not allow coaches to view the Payment page.
   if (profile?.role === 'coach') {
     currentTab = 'home'
     toast('Coaches do not have access to Payment.')
@@ -1472,9 +1472,6 @@ async function init() {
         renderLogin()
       }
     }
-
-    // SIGNED_IN is handled by the login form after signInWithPassword.
-    // This avoids running loadSession twice for a new login.
   })
 }
 
