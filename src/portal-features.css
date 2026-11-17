@@ -1,1 +1,271 @@
 
+/* Add-on styles for Fixtures, Announcements and Matchday Squad.
+   The existing style.css remains unchanged. */
+
+.menu-card:focus-visible, .team-card:focus-visible {
+  outline: 3px solid rgba(40, 119, 207, 0.25);
+  outline-offset: 2px;
+}
+
+.portal-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 14px;
+}
+
+.portal-form-grid > div { min-width: 0; }
+.portal-form-grid .form-span { grid-column: 1 / -1; }
+.portal-form-grid .primary-btn { margin-top: 4px; }
+
+.fixture-card, .announcement-card, .squad-card {
+  background: #fff;
+  border: 1px solid #dce4ef;
+  border-radius: 12px;
+  padding: 17px;
+  margin-bottom: 13px;
+}
+
+.fixture-card-top, .announcement-card-top, .squad-card-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.fixture-card-top .muted { font-size: 11px; }
+
+.fixture-teams {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  padding: 21px 0;
+}
+
+.fixture-side { min-width: 0; }
+.fixture-side strong { display: block; color: #102b50; font-size: 14px; }
+.fixture-side small { display: block; color: #8994a4; font-size: 10px; margin-top: 5px; }
+.fixture-opponent { text-align: right; }
+.fixture-score { color: #102b50; font-size: 25px; font-weight: 800; white-space: nowrap; }
+.fixture-score span { color: #9aa5b3; padding: 0 3px; }
+
+.fixture-upcoming-label {
+  color: #2877cf;
+  background: #eaf2fc;
+  border-radius: 7px;
+  padding: 7px 9px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .5px;
+  white-space: nowrap;
+}
+
+.fixture-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 15px;
+  padding-top: 12px;
+  border-top: 1px solid #edf0f5;
+  color: #718096;
+  font-size: 11px;
+}
+
+.fixture-admin-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
+.announcement-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.announcement-card {
+  margin: 0;
+  border-left: 4px solid #2877cf;
+}
+
+.announcement-card-top small { color: #8994a4; font-size: 11px; }
+
+.announcement-card h3 {
+  color: #102b50;
+  font-size: 16px;
+  margin: 13px 0 7px;
+}
+
+.announcement-card p {
+  color: #526176;
+  font-size: 13px;
+  line-height: 1.65;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+textarea {
+  width: 100%;
+  min-height: 100px;
+  resize: vertical;
+  padding: 11px 12px;
+  background: #fff;
+  border: 1px solid #d8e0eb;
+  border-radius: 8px;
+  color: #172033;
+  font: inherit;
+  outline: none;
+}
+
+textarea:focus {
+  border-color: #2877cf;
+  box-shadow: 0 0 0 3px rgba(40, 119, 207, .10);
+}
+
+.squad-card-heading { align-items: flex-start; }
+
+.squad-card-heading h3 {
+  color: #102b50;
+  font-size: 15px;
+  margin: 10px 0 5px;
+}
+
+.squad-card-heading p { margin: 0; line-height: 1.5; }
+
+.squad-count {
+  flex-shrink: 0;
+  color: #175ca6;
+  background: #eaf2fc;
+  border-radius: 20px;
+  padding: 7px 10px;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.squad-editor {
+  margin-top: 16px;
+  border-top: 1px solid #edf0f5;
+  padding-top: 13px;
+}
+
+.squad-editor summary {
+  cursor: pointer;
+  list-style: none;
+  color: #175ca6;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.squad-editor summary::-webkit-details-marker { display: none; }
+.squad-editor summary span { float: right; font-size: 18px; }
+
+.squad-player-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 13px;
+}
+
+.squad-player-option {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0;
+  padding: 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 9px;
+  cursor: pointer;
+  min-width: 0;
+}
+
+.squad-player-option input {
+  width: 17px;
+  min-height: 17px;
+  flex: 0 0 auto;
+  accent-color: #1764ad;
+}
+
+.squad-player-option span { min-width: 0; }
+
+.squad-player-option strong,
+.squad-player-option small { display: block; }
+
+.squad-player-option strong {
+  color: #172b49;
+  font-size: 12px;
+}
+
+.squad-player-option small {
+  color: #8490a0;
+  font-size: 10px;
+  margin-top: 3px;
+  font-weight: 500;
+}
+
+.selected-squad-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.squad-selected-player {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  padding: 8px;
+  background: #f7f9fc;
+  border: 1px solid #edf0f5;
+  border-radius: 9px;
+}
+
+.squad-selected-player .player-number {
+  width: 34px;
+  height: 34px;
+  font-size: 13px;
+}
+
+.squad-selected-player strong {
+  color: #172b49;
+  font-size: 11px;
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.squad-selected-player small {
+  color: #8994a4;
+  font-size: 9px;
+}
+
+.squad-parent-note {
+  margin: 12px 0 0;
+  font-size: 11px;
+}
+
+@media (max-width: 700px) {
+  .portal-form-grid { grid-template-columns: 1fr; }
+  .portal-form-grid .form-span { grid-column: auto; }
+
+  .fixture-card, .announcement-card, .squad-card {
+    padding: 13px;
+  }
+
+  .fixture-teams { gap: 7px; padding: 17px 0; }
+  .fixture-side strong { font-size: 12px; }
+  .fixture-score { font-size: 21px; }
+
+  .fixture-upcoming-label {
+    font-size: 9px;
+    padding: 6px;
+  }
+
+  .squad-player-options,
+  .selected-squad-list {
+    grid-template-columns: 1fr;
+  }
+
+  .squad-card-heading { flex-wrap: wrap; }
+}
+
+
