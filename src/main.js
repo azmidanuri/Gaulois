@@ -829,6 +829,26 @@ async function restoreTeam(id) {
 function playerManagementPage() {
   if (staffOnlyPage()) return ''
 
+  const active = activeTeams()
+
+  // Create one group for every active team.
+  // Also include any existing player age groups that are not
+  // currently listed in the active teams table.
+  const teamGroupNames = [
+    ...new Set([
+      ...active.map(team => team.name),
+      ...players.map(player => player.age_group).filter(Boolean)
+    ])
+  ].sort((a, b) => a.localeCompare(b))
+
+  const sortedPlayers = players.slice().sort((a, b) =>
+    a.name.localeCompare(b.name)
+  )
+
+  const unassignedPlayers = sortedPlayers.filter(player =>
+    !player.age_group
+  )
+
   return `
     ${header()}
     <main class="container">
@@ -882,21 +902,144 @@ function playerManagementPage() {
         <span class="muted">${players.length} players</span>
       </div>
 
-      <div class="management-list">
-        ${players.slice().sort((a, b) => a.name.localeCompare(b.name)).map(p => `
-          <article class="management-item">
-            <div class="player-number">${jerseyDisplay(p)}</div>
-            <div class="management-item-info">
-              <strong>${esc(p.name)}</strong>
-              <small>${esc(p.age_group || 'No team')} · ${esc(p.position || 'Position not assigned')}</small>
+      <section class="player-management-groups">
+
+        ${teamGroupNames.map(teamName => {
+          const group = sortedPlayers.filter(player =>
+            player.age_group === teamName
+          )
+
+          return `
+            <details class="profile-team-section player-management-team">
+              <summary class="profile-team-heading">
+
+                <div class="profile-team-title">
+                  <h3>${esc(teamName)} TEAM</h3>
+                  <small>Gaulois Aerion Academy</small>
+                </div>
+
+                <div class="profile-team-right">
+                  <span class="profile-team-count">
+                    ${group.length} ${group.length === 1 ? 'PLAYER' : 'PLAYERS'}
+                  </span>
+                  <span class="profile-chevron">
+                    ${icon('chevron', 19)}
+                  </span>
+                </div>
+
+              </summary>
+
+              <div class="profile-team-content">
+                <div class="management-list">
+
+                  ${group.map(p => `
+                    <article class="management-item">
+
+                      <div class="player-number">
+                        ${jerseyDisplay(p)}
+                      </div>
+
+                      <div class="management-item-info">
+                        <strong>${esc(p.name)}</strong>
+                        <small>
+                          ${esc(p.position || 'Position not assigned')}
+                          ${p.date_of_birth ? ' · DOB: ' + esc(p.date_of_birth) : ''}
+                        </small>
+                      </div>
+
+                      <div class="management-actions">
+                        <button class="view-btn"
+                          data-action="edit-player"
+                          data-id="${p.id}">
+                          ${icon('edit', 15)} Edit
+                        </button>
+
+                        <button class="delete-btn"
+                          data-action="delete-player"
+                          data-id="${p.id}"
+                          data-name="${esc(p.name)}">
+                          ${icon('trash', 15)} Remove
+                        </button>
+                      </div>
+
+                    </article>
+                  `).join('')}
+
+                </div>
+              </div>
+            </details>
+          `
+        }).join('')}
+
+        ${unassignedPlayers.length ? `
+          <details class="profile-team-section player-management-team">
+            <summary class="profile-team-heading">
+
+              <div class="profile-team-title">
+                <h3>NO TEAM ASSIGNED</h3>
+                <small>Players awaiting team allocation</small>
+              </div>
+
+              <div class="profile-team-right">
+                <span class="profile-team-count">
+                  ${unassignedPlayers.length}
+                  ${unassignedPlayers.length === 1 ? 'PLAYER' : 'PLAYERS'}
+                </span>
+                <span class="profile-chevron">
+                  ${icon('chevron', 19)}
+                </span>
+              </div>
+
+            </summary>
+
+            <div class="profile-team-content">
+              <div class="management-list">
+
+                ${unassignedPlayers.map(p => `
+                  <article class="management-item">
+
+                    <div class="player-number">
+                      ${jerseyDisplay(p)}
+                    </div>
+
+                    <div class="management-item-info">
+                      <strong>${esc(p.name)}</strong>
+                      <small>
+                        ${esc(p.position || 'Position not assigned')}
+                        ${p.date_of_birth ? ' · DOB: ' + esc(p.date_of_birth) : ''}
+                      </small>
+                    </div>
+
+                    <div class="management-actions">
+                      <button class="view-btn"
+                        data-action="edit-player"
+                        data-id="${p.id}">
+                        ${icon('edit', 15)} Edit
+                      </button>
+
+                      <button class="delete-btn"
+                        data-action="delete-player"
+                        data-id="${p.id}"
+                        data-name="${esc(p.name)}">
+                        ${icon('trash', 15)} Remove
+                      </button>
+                    </div>
+
+                  </article>
+                `).join('')}
+
+              </div>
             </div>
-            <div class="management-actions">
-              <button class="view-btn" data-action="edit-player" data-id="${p.id}">${icon('edit', 15)} Edit</button>
-              <button class="delete-btn" data-action="delete-player" data-id="${p.id}" data-name="${esc(p.name)}">Remove</button>
-            </div>
-          </article>
-        `).join('') || '<div class="empty-state">No players registered yet.</div>'}
-      </div>
+          </details>
+        ` : ''}
+
+        ${players.length === 0 ? `
+          <div class="empty-state">
+            No players registered yet.
+          </div>
+        ` : ''}
+
+      </section>
     </main>
   `
 }
