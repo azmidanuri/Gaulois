@@ -778,4 +778,65 @@ textarea:focus {
   }
 }
 
+/* PLAYER MANAGEMENT - COLLAPSIBLE TEAM GROUPS */
+
+.player-management-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+}
+
+.player-management-team {
+  overflow: hidden;
+}
+
+.player-management-team > summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+.player-management-team > summary::-webkit-details-marker {
+  display: none;
+}
+
+.player-management-team[open] .profile-chevron {
+  transform: rotate(180deg);
+}
+
+.player-management-team .profile-chevron {
+  transition: transform 0.2s ease;
+}
+
+.player-management-team .profile-team-content {
+  padding: 0 15px 15px;
+}
+
+.player-management-team .management-list {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.player-management-team .management-item {
+  margin: 0;
+}
+
+.player-management-team .management-actions {
+  flex-shrink: 0;
+}
+
+@media (max-width: 700px) {
+  .player-management-team .profile-team-content {
+    padding: 0 10px 12px;
+  }
+
+  .player-management-team .management-item {
+    flex-wrap: wrap;
+  }
+
+  .player-management-team .management-actions {
+    width: 100%;
+  }
+}
+
 
