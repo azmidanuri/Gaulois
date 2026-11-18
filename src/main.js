@@ -1,4 +1,3 @@
-
 import { createClient } from '@supabase/supabase-js'
 import './style.css'
 import './portal-features.css'
@@ -17,6 +16,7 @@ let user = null
 let profile = null
 let players = []
 let linkedPlayers = []
+let squadRosterPlayers = []
 let teams = []
 let currentPage = 'login'
 let loginType = null
@@ -201,7 +201,6 @@ function loginPage() {
   root.innerHTML = `
     <main class="login-page">
       <section class="login-card">
-
         <div class="login-brand">
           <img src="/gaulois-logo.png" class="login-logo" alt="Gaulois Aerion Academy">
           <h1>Gaulois Aerion Academy</h1>
@@ -373,6 +372,7 @@ async function logout() {
   profile = null
   players = []
   linkedPlayers = []
+  squadRosterPlayers = []
   teams = []
   fixtures = []
   announcements = []
@@ -830,10 +830,6 @@ function playerManagementPage() {
   if (staffOnlyPage()) return ''
 
   const active = activeTeams()
-
-  // Create one group for every active team.
-  // Also include any existing player age groups that are not
-  // currently listed in the active teams table.
   const teamGroupNames = [
     ...new Set([
       ...active.map(team => team.name),
@@ -903,7 +899,6 @@ function playerManagementPage() {
       </div>
 
       <section class="player-management-groups">
-
         ${teamGroupNames.map(teamName => {
           const group = sortedPlayers.filter(player =>
             player.age_group === teamName
@@ -912,33 +907,23 @@ function playerManagementPage() {
           return `
             <details class="profile-team-section player-management-team">
               <summary class="profile-team-heading">
-
                 <div class="profile-team-title">
                   <h3>${esc(teamName)} TEAM</h3>
                   <small>Gaulois Aerion Academy</small>
                 </div>
-
                 <div class="profile-team-right">
                   <span class="profile-team-count">
                     ${group.length} ${group.length === 1 ? 'PLAYER' : 'PLAYERS'}
                   </span>
-                  <span class="profile-chevron">
-                    ${icon('chevron', 19)}
-                  </span>
+                  <span class="profile-chevron">${icon('chevron', 19)}</span>
                 </div>
-
               </summary>
 
               <div class="profile-team-content">
                 <div class="management-list">
-
                   ${group.map(p => `
                     <article class="management-item">
-
-                      <div class="player-number">
-                        ${jerseyDisplay(p)}
-                      </div>
-
+                      <div class="player-number">${jerseyDisplay(p)}</div>
                       <div class="management-item-info">
                         <strong>${esc(p.name)}</strong>
                         <small>
@@ -946,25 +931,17 @@ function playerManagementPage() {
                           ${p.date_of_birth ? ' · DOB: ' + esc(p.date_of_birth) : ''}
                         </small>
                       </div>
-
                       <div class="management-actions">
-                        <button class="view-btn"
-                          data-action="edit-player"
-                          data-id="${p.id}">
+                        <button class="view-btn" data-action="edit-player" data-id="${p.id}">
                           ${icon('edit', 15)} Edit
                         </button>
-
-                        <button class="delete-btn"
-                          data-action="delete-player"
-                          data-id="${p.id}"
-                          data-name="${esc(p.name)}">
+                        <button class="delete-btn" data-action="delete-player"
+                          data-id="${p.id}" data-name="${esc(p.name)}">
                           ${icon('trash', 15)} Remove
                         </button>
                       </div>
-
                     </article>
                   `).join('')}
-
                 </div>
               </div>
             </details>
@@ -974,34 +951,24 @@ function playerManagementPage() {
         ${unassignedPlayers.length ? `
           <details class="profile-team-section player-management-team">
             <summary class="profile-team-heading">
-
               <div class="profile-team-title">
                 <h3>NO TEAM ASSIGNED</h3>
                 <small>Players awaiting team allocation</small>
               </div>
-
               <div class="profile-team-right">
                 <span class="profile-team-count">
                   ${unassignedPlayers.length}
                   ${unassignedPlayers.length === 1 ? 'PLAYER' : 'PLAYERS'}
                 </span>
-                <span class="profile-chevron">
-                  ${icon('chevron', 19)}
-                </span>
+                <span class="profile-chevron">${icon('chevron', 19)}</span>
               </div>
-
             </summary>
 
             <div class="profile-team-content">
               <div class="management-list">
-
                 ${unassignedPlayers.map(p => `
                   <article class="management-item">
-
-                    <div class="player-number">
-                      ${jerseyDisplay(p)}
-                    </div>
-
+                    <div class="player-number">${jerseyDisplay(p)}</div>
                     <div class="management-item-info">
                       <strong>${esc(p.name)}</strong>
                       <small>
@@ -1009,36 +976,25 @@ function playerManagementPage() {
                         ${p.date_of_birth ? ' · DOB: ' + esc(p.date_of_birth) : ''}
                       </small>
                     </div>
-
                     <div class="management-actions">
-                      <button class="view-btn"
-                        data-action="edit-player"
-                        data-id="${p.id}">
+                      <button class="view-btn" data-action="edit-player" data-id="${p.id}">
                         ${icon('edit', 15)} Edit
                       </button>
-
-                      <button class="delete-btn"
-                        data-action="delete-player"
-                        data-id="${p.id}"
-                        data-name="${esc(p.name)}">
+                      <button class="delete-btn" data-action="delete-player"
+                        data-id="${p.id}" data-name="${esc(p.name)}">
                         ${icon('trash', 15)} Remove
                       </button>
                     </div>
-
                   </article>
                 `).join('')}
-
               </div>
             </div>
           </details>
         ` : ''}
 
         ${players.length === 0 ? `
-          <div class="empty-state">
-            No players registered yet.
-          </div>
+          <div class="empty-state">No players registered yet.</div>
         ` : ''}
-
       </section>
     </main>
   `
@@ -1134,10 +1090,7 @@ async function deletePlayer(id, name) {
     .eq('id', id)
     .select('id')
 
-  if (error) {
-    return showMessage('Unable to remove player: ' + error.message)
-  }
-
+  if (error) return showMessage('Unable to remove player: ' + error.message)
   if (!data?.length) {
     return showMessage('Player was not removed. Check your Supabase delete permissions.')
   }
@@ -1823,34 +1776,57 @@ async function deleteAnnouncement(id, title) {
 
 // MATCHDAY SQUADS
 
-async function loadSquads() {
-  const ids = visiblePlayers().map(p => p.id)
+// Staff use the normal players table.
+// Parents get a separate, limited squad roster from a secure Supabase view.
+// This prevents squad visibility from exposing dates of birth or other player data.
 
-  if (!ids.length) {
-    squadSelections = []
+async function loadSquadRoster() {
+  if (canManage()) {
+    squadRosterPlayers = players
     return
   }
 
-  const { data, error } = await supabase.from('fixture_squad_players')
-    .select('*').in('player_id', ids)
+  const { data, error } = await supabase
+    .from('parent_team_squad_players')
+    .select('id, name, age_group, position, jersey_number')
+    .order('name')
+
+  if (error) {
+    throw new Error(
+      'The team squad list could not be loaded. Please check the parent_team_squad_players view and its permissions. ' +
+      error.message
+    )
+  }
+
+  squadRosterPlayers = data || []
+}
+
+async function loadSquads() {
+  const { data, error } = await supabase
+    .from('fixture_squad_players')
+    .select('*')
 
   if (error) throw error
   squadSelections = data || []
 }
 
 function renderSquadMatch(f, roster, isPast = false) {
-  const squad = squadSelections.filter(s => String(s.fixture_id) === String(f.id))
+  const squad = squadSelections.filter(s =>
+    String(s.fixture_id) === String(f.id)
+  )
 
+  // Use the limited team roster for parents and the full player records for staff.
   const squadPlayers = squad.map(s =>
-    roster.find(p => String(p.id) === String(s.player_id))
+    squadRosterPlayers.find(p => String(p.id) === String(s.player_id))
   ).filter(Boolean).sort((a, b) => {
     const aNum = Number(a.jersey_number) || 999
     const bNum = Number(b.jersey_number) || 999
     return aNum - bNum || a.name.localeCompare(b.name)
   })
 
-  const eligiblePlayers = roster.filter(p => !f.age_group || p.age_group === f.age_group)
-    .sort((a, b) => a.name.localeCompare(b.name))
+  const eligiblePlayers = roster.filter(p =>
+    !f.age_group || p.age_group === f.age_group
+  ).sort((a, b) => a.name.localeCompare(b.name))
 
   return `
     <details class="squad-match-card">
@@ -1881,7 +1857,7 @@ function renderSquadMatch(f, roster, isPast = false) {
       <div class="squad-match-content">
         <div class="squad-content-heading">
           <div>
-            <h4>Matchday Squad</h4>
+            <h4>Full Matchday Squad</h4>
             <p class="muted">${squadPlayers.length} players selected</p>
           </div>
         </div>
@@ -1920,13 +1896,13 @@ function renderSquadMatch(f, roster, isPast = false) {
             <div class="squad-selected-player">
               <span class="player-number">${jerseyDisplay(p)}</span>
               <strong>${esc(p.name)}</strong>
-              <small>${esc(p.position || '')}</small>
+              <small>${esc(p.position || 'Position not assigned')}</small>
             </div>
           `).join('') : '<div class="empty-state">The matchday squad has not been announced yet.</div>'}
         </div>
 
-        ${!canManage() && roster.length
-          ? '<p class="muted squad-parent-note">Your child’s selection is shown above if selected.</p>'
+        ${!canManage()
+          ? '<p class="muted squad-parent-note">You are viewing the full matchday squad for your team. This list is view-only.</p>'
           : ''}
       </div>
     </details>
@@ -1935,16 +1911,25 @@ function renderSquadMatch(f, roster, isPast = false) {
 
 async function squadsPage() {
   await loadFixtures()
+  await loadSquadRoster()
   await loadSquads()
 
-  const roster = visiblePlayers()
+  // Parent fixtures remain limited to teams linked to their account.
+  // The separate squad roster only supplies names and football details
+  // for the selected players in those team fixtures.
+  const linkedRoster = visiblePlayers()
+
   const names = profile.role === 'parent'
-    ? [...new Set(roster.map(p => p.age_group))]
+    ? [...new Set(linkedRoster.map(p => p.age_group).filter(Boolean))]
     : teamNames()
 
-  const teamFixtures = fixtures.filter(f => !f.age_group || names.includes(f.age_group))
+  const teamFixtures = fixtures.filter(f =>
+    !f.age_group || names.includes(f.age_group)
+  )
+
   const upcoming = teamFixtures.filter(f => !dateIsPast(f.fixture_date))
     .sort((a, b) => a.fixture_date.localeCompare(b.fixture_date))
+
   const past = teamFixtures.filter(f => dateIsPast(f.fixture_date))
     .sort((a, b) => b.fixture_date.localeCompare(a.fixture_date))
 
@@ -1954,7 +1939,7 @@ async function squadsPage() {
       ${backButton()}
       <div class="page-heading">
         <h2>Matchday Squad</h2>
-        <p class="muted">View selected players for upcoming and previous matches.</p>
+        <p class="muted">View the full selected squad for your team's upcoming and previous matches.</p>
       </div>
 
       <section class="activity-section squad-list-section">
@@ -1963,7 +1948,7 @@ async function squadsPage() {
           <span class="muted">${upcoming.length} matches</span>
         </div>
         ${upcoming.length
-          ? upcoming.map(f => renderSquadMatch(f, roster, false)).join('')
+          ? upcoming.map(f => renderSquadMatch(f, linkedRoster, false)).join('')
           : '<div class="empty-state">No upcoming fixtures are available for your team.</div>'}
       </section>
 
@@ -1978,7 +1963,7 @@ async function squadsPage() {
           </summary>
           <div class="squad-previous-content">
             ${past.length
-              ? past.map(f => renderSquadMatch(f, roster, true)).join('')
+              ? past.map(f => renderSquadMatch(f, linkedRoster, true)).join('')
               : '<div class="empty-state">No previous matches available.</div>'}
           </div>
         </details>
