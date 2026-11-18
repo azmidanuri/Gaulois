@@ -597,4 +597,185 @@ textarea:focus {
   }
 }
 
+/* =========================================
+   TEAM, PLAYER & SQUAD MANAGEMENT
+========================================= */
+
+.management-panel {
+  background: #fff;
+  border: 1px solid #dce4ef;
+  border-radius: 13px;
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.management-panel h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #102b50;
+  font-size: 16px;
+  margin: 0 0 15px;
+}
+
+.management-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.management-item {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  min-width: 0;
+  padding: 13px;
+  background: #fff;
+  border: 1px solid #e0e6ef;
+  border-radius: 11px;
+}
+
+.management-item-icon {
+  width: 43px;
+  height: 43px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  background: #eaf2fc;
+  color: #175ca6;
+  border-radius: 10px;
+}
+
+.management-item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.management-item-info strong {
+  display: block;
+  color: #102b50;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.management-item-info small {
+  display: block;
+  color: #8490a0;
+  font-size: 11px;
+  margin-top: 5px;
+  line-height: 1.5;
+}
+
+.management-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+.management-actions .view-btn,
+.management-actions .delete-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+.archived-item {
+  background: #f7f9fc;
+  opacity: .8;
+}
+
+.management-panel .primary-btn {
+  margin-top: 12px;
+}
+
+.management-panel input,
+.management-panel select {
+  min-width: 0;
+}
+
+.management-panel label {
+  margin-top: 10px;
+}
+
+.management-panel .portal-form-grid {
+  gap: 0 15px;
+}
+
+.management-panel .form-span {
+  grid-column: 1 / -1;
+}
+
+.management-panel .publish-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.management-panel .publish-option input {
+  width: auto;
+  min-height: auto;
+}
+
+.management-item .player-number {
+  flex-shrink: 0;
+}
+
+.management-item .view-btn,
+.management-item .delete-btn {
+  white-space: nowrap;
+}
+
+@media (max-width: 700px) {
+  .management-panel {
+    padding: 15px;
+  }
+
+  .management-item {
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 11px;
+  }
+
+  .management-item-info {
+    flex: 1 1 calc(100% - 60px);
+  }
+
+  .management-actions {
+    width: 100%;
+    justify-content: flex-end;
+    padding-top: 7px;
+    border-top: 1px solid #edf0f5;
+  }
+
+  .management-actions button {
+    flex: 1;
+  }
+
+  .management-panel .portal-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .management-panel .form-span {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 380px) {
+  .management-panel {
+    padding: 12px;
+  }
+
+  .management-item-info strong {
+    font-size: 12px;
+  }
+
+  .management-actions button {
+    font-size: 10px;
+    padding: 8px 7px;
+  }
+}
+
 
