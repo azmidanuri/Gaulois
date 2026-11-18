@@ -1448,7 +1448,8 @@ async function deleteAnnouncement(id, title) {
   await announcementsPage()
 }
 
-// MATCHDAY SQUADS
+
+ // MATCHDAY SQUADS
 
 async function loadSquads() {
   const ids = visiblePlayers().map(p => p.id)
@@ -1468,6 +1469,177 @@ async function loadSquads() {
   squadSelections = data || []
 }
 
+function renderSquadMatch(f, roster, isPast = false) {
+  const squad = squadSelections.filter(
+    s => String(s.fixture_id) === String(f.id)
+  )
+
+  const squadPlayers = squad
+    .map(s => roster.find(p => String(p.id) === String(s.player_id)))
+    .filter(Boolean)
+    .sort((a, b) => {
+      const aNum = Number(a.jersey_number) || 999
+      const bNum = Number(b.jersey_number) || 999
+      return aNum - bNum || a.name.localeCompare(b.name)
+    })
+
+  const eligiblePlayers = roster
+    .filter(p => !f.age_group || p.age_group === f.age_group)
+    .sort((a, b) => a.name.localeCompare(b.name))
+
+  return `
+    <details class="squad-match-card">
+
+      <summary class="squad-match-summary">
+
+        <div class="squad-match-main">
+
+          <div class="activity-type-icon">
+            ${icon('trophy', 23)}
+          </div>
+
+          <div class="squad-match-info">
+
+            <div class="squad-match-title-row">
+              <span class="team-badge">
+                ${esc(f.age_group || 'Academy')}
+              </span>
+
+              ${isPast
+                ? '<span class="squad-status squad-status-past">COMPLETED</span>'
+                : '<span class="squad-status squad-status-upcoming">UPCOMING</span>'
+              }
+            </div>
+
+            <h3>Gaulois Aerion vs ${esc(f.opponent)}</h3>
+
+            <p class="muted">
+              ${formatDate(f.fixture_date)}
+            </p>
+
+            <small class="muted">
+              ${f.kick_off ? icon('clock', 13) + ' ' + esc(formatTime(f.kick_off)) : ''}
+              ${f.venue ? ' · ' + icon('pin', 13) + ' ' + esc(f.venue) : ''}
+            </small>
+
+          </div>
+
+        </div>
+
+        <div class="squad-match-right">
+
+          <span class="squad-count">
+            ${squadPlayers.length} selected
+          </span>
+
+          <span class="collapse-arrow">
+            ${icon('chevron', 19)}
+          </span>
+
+        </div>
+
+      </summary>
+
+      <div class="squad-match-content">
+
+        <div class="squad-content-heading">
+          <div>
+            <h4>Matchday Squad</h4>
+            <p class="muted">
+              ${squadPlayers.length} players selected
+            </p>
+          </div>
+        </div>
+
+        ${canManage() ? `
+
+          <details class="squad-editor">
+
+            <summary>
+              ${squadPlayers.length
+                ? 'Edit Matchday Squad'
+                : 'Select Matchday Squad'
+              }
+              <span>${icon('chevron', 17)}</span>
+            </summary>
+
+            <div class="squad-player-options">
+
+              ${eligiblePlayers.length
+                ? eligiblePlayers.map(p => `
+                  <label class="squad-player-option">
+
+                    <input
+                      type="checkbox"
+                      class="squad-check"
+                      data-fixture="${f.id}"
+                      value="${p.id}"
+                      ${squad.some(s =>
+                        String(s.player_id) === String(p.id)
+                      ) ? 'checked' : ''}
+                    >
+
+                    <span>
+                      <strong>${esc(p.name)}</strong>
+                      <small>
+                        ${esc(p.position || 'Position not assigned')}
+                        ${p.jersey_number != null
+                          ? ' | #' + esc(p.jersey_number)
+                          : ''
+                        }
+                      </small>
+                    </span>
+
+                  </label>
+                `).join('')
+                : '<div class="empty-state">No eligible players found.</div>'
+              }
+
+            </div>
+
+            <button
+              class="primary-btn"
+              data-action="save-squad"
+              data-fixture="${f.id}">
+              Save Squad
+            </button>
+
+          </details>
+
+        ` : ''}
+
+        <div class="selected-squad-list">
+
+          ${squadPlayers.length
+            ? squadPlayers.map(p => `
+              <div class="squad-selected-player">
+
+                <span class="player-number">
+                  ${jerseyDisplay(p)}
+                </span>
+
+                <strong>${esc(p.name)}</strong>
+
+                <small>${esc(p.position || '')}</small>
+
+              </div>
+            `).join('')
+            : '<div class="empty-state">The matchday squad has not been announced yet.</div>'
+          }
+
+        </div>
+
+        ${!canManage() && roster.length
+          ? '<p class="muted squad-parent-note">Your child’s selection is shown above if selected.</p>'
+          : ''
+        }
+
+      </div>
+
+    </details>
+  `
+}
+
 async function squadsPage() {
   await loadFixtures()
   await loadSquads()
@@ -1478,9 +1650,20 @@ async function squadsPage() {
     ? [...new Set(roster.map(p => p.age_group))]
     : TEAMS
 
-  const teamFixtures = fixtures.filter(f =>
-    !f.age_group || teams.includes(f.age_group)
-  )
+  const teamFixtures = fixtures
+    .filter(f => !f.age_group || teams.includes(f.age_group))
+
+  const upcoming = teamFixtures
+    .filter(f => !dateIsPast(f.fixture_date))
+    .sort((a, b) =>
+      a.fixture_date.localeCompare(b.fixture_date)
+    )
+
+  const past = teamFixtures
+    .filter(f => dateIsPast(f.fixture_date))
+    .sort((a, b) =>
+      b.fixture_date.localeCompare(a.fixture_date)
+    )
 
   root.innerHTML = `
     ${header()}
@@ -1491,112 +1674,64 @@ async function squadsPage() {
 
       <div class="page-heading">
         <h2>Matchday Squad</h2>
-        <p class="muted">View selected players for upcoming fixtures.</p>
+        <p class="muted">
+          View selected players for upcoming and previous matches.
+        </p>
       </div>
 
-      ${teamFixtures.length
-        ? teamFixtures.map(f => {
-            const squad = squadSelections.filter(
-              s => String(s.fixture_id) === String(f.id)
-            )
+      <!-- UPCOMING MATCHES -->
 
-            const squadPlayers = squad
-              .map(s => roster.find(p => String(p.id) === String(s.player_id)))
-              .filter(Boolean)
+      <section class="activity-section squad-list-section">
 
-            const canSelect = canManage()
+        <div class="section-heading">
+          <h3>Upcoming Matches</h3>
+          <span class="muted">${upcoming.length} matches</span>
+        </div>
 
-            return `
-              <section class="squad-card">
+        ${upcoming.length
+          ? upcoming.map(f =>
+              renderSquadMatch(f, roster, false)
+            ).join('')
+          : '<div class="empty-state">No upcoming fixtures are available for your team.</div>'
+        }
 
-                <div class="squad-card-heading">
+      </section>
 
-                  <div>
-                    <span class="team-badge">${esc(f.age_group || 'Academy')}</span>
+      <!-- PREVIOUS MATCHES -->
 
-                    <h3>Gaulois Aerion vs ${esc(f.opponent)}</h3>
+      <section class="activity-section squad-list-section">
 
-                    <p class="muted">
-                      ${formatDate(f.fixture_date)}
-                      ${f.kick_off ? ' | ' + esc(formatTime(f.kick_off)) : ''}
-                      ${f.venue ? ' | ' + esc(f.venue) : ''}
-                    </p>
-                  </div>
+        <details class="squad-previous-section">
 
-                  <span class="squad-count">${squadPlayers.length} selected</span>
+          <summary class="squad-previous-heading">
 
-                </div>
+            <div>
+              <h3>Previous Matches</h3>
+              <small class="muted">
+                ${past.length} completed ${past.length === 1 ? 'match' : 'matches'}
+              </small>
+            </div>
 
-                ${canSelect ? `
+            <span class="collapse-arrow">
+              ${icon('chevron', 19)}
+            </span>
 
-                  <details class="squad-editor">
+          </summary>
 
-                    <summary>
-                      ${squadPlayers.length ? 'Edit matchday squad' : 'Select matchday squad'}
-                      <span>${icon('chevron', 17)}</span>
-                    </summary>
+          <div class="squad-previous-content">
 
-                    <div class="squad-player-options">
+            ${past.length
+              ? past.map(f =>
+                  renderSquadMatch(f, roster, true)
+                ).join('')
+              : '<div class="empty-state">No previous matches available.</div>'
+            }
 
-                      ${roster
-                        .filter(p => !f.age_group || p.age_group === f.age_group)
-                        .map(p => `
-                          <label class="squad-player-option">
+          </div>
 
-                            <input type="checkbox"
-                              class="squad-check"
-                              data-fixture="${f.id}"
-                              value="${p.id}"
-                              ${squad.some(s => String(s.player_id) === String(p.id)) ? 'checked' : ''}>
+        </details>
 
-                            <span>
-                              <strong>${esc(p.name)}</strong>
-                              <small>
-                                ${esc(p.position || 'Position not assigned')}
-                                ${p.jersey_number != null ? ' | #' + esc(p.jersey_number) : ''}
-                              </small>
-                            </span>
-
-                          </label>
-                        `).join('')}
-
-                    </div>
-
-                    <button class="primary-btn"
-                      data-action="save-squad"
-                      data-fixture="${f.id}">
-                      Save Squad
-                    </button>
-
-                  </details>
-
-                ` : ''}
-
-                <div class="selected-squad-list">
-
-                  ${squadPlayers.length
-                    ? squadPlayers.map(p => `
-                      <div class="squad-selected-player">
-                        <span class="player-number">${jerseyDisplay(p)}</span>
-                        <strong>${esc(p.name)}</strong>
-                        <small>${esc(p.position || '')}</small>
-                      </div>
-                    `).join('')
-                    : '<div class="empty-state">The matchday squad has not been announced yet.</div>'
-                  }
-
-                </div>
-
-                ${!canSelect && roster.length
-                  ? '<p class="muted squad-parent-note">Your child\'s selection is shown above if selected.</p>'
-                  : ''
-                }
-
-              </section>
-            `
-          }).join('')
-        : '<div class="empty-state">No upcoming fixtures are available for your team.</div>'
-      }
+      </section>
 
     </main>
   `
@@ -1611,7 +1746,9 @@ async function saveSquad(fixtureId) {
     )
   ].map(el => el.value)
 
-  const fixture = fixtures.find(f => String(f.id) === String(fixtureId))
+  const fixture = fixtures.find(
+    f => String(f.id) === String(fixtureId)
+  )
 
   if (!fixture) {
     return showMessage('Fixture not found. Refresh and try again.')
@@ -1650,6 +1787,7 @@ async function saveSquad(fixtureId) {
   showMessage('Matchday squad updated.')
   await squadsPage()
 }
+
 
 // PLACEHOLDER PAGES
 
