@@ -186,8 +186,33 @@ export function initTournamentPortal({ supabase, root, getUser, canManage, visib
       </article>`
     }).join('') || '<p class="muted">No linked children in the eligible age groups.</p>'
   }
+  function finalConfirmedSquadPanel(t) {
+    const playerMap = new Map(visiblePlayers().map(p => [String(p.id), p]))
+    const confirmed = squadRows.filter(row => {
+      if (String(row.tournament_id) !== String(t.id) || row.squad_role !== 'selected') return false
+      return registrationFor(t.id, row.player_id)?.parent_confirmation === 'confirmed'
+    })
+
+    return `
+      <section class="tournament-panel">
+        <h3>Final confirmed squad</h3>
+        <p class="muted">Players shown here have been selected by the coaches and confirmed by their parents.</p>
+        <div class="tournament-final-squad">
+          ${confirmed.map(row => {
+            const player = playerMap.get(String(row.player_id))
+            return player ? `
+              <div class="tournament-final-player">
+                <strong>${esc(player.name)}</strong>
+                <small>${esc(player.age_group || '')}</small>
+              </div>` : ''
+          }).join('') || '<p class="muted">No players have confirmed their places yet.</p>'}
+        </div>
+      </section>`
+  }
+
   function detailPage(t) {
     return `
+      ${header()}
       <main class="container">
         <button class="secondary-btn" data-tournament-action="back">← Back to tournaments</button>
         <section class="tournament-detail-header">
@@ -206,6 +231,7 @@ export function initTournamentPortal({ supabase, root, getUser, canManage, visib
             <h3>Registrations and squad management</h3>
             ${staffRegistrationTable(t)}
           </section>
+          ${finalConfirmedSquadPanel(t)}
         ` : `
           <section class="tournament-panel">
             <h3>Player registration</h3>
@@ -222,6 +248,7 @@ export function initTournamentPortal({ supabase, root, getUser, canManage, visib
       : tournaments.filter(t => t.status === 'published' || t.status === 'closed' || t.status === 'completed')
 
     return `
+      ${header()}
       <main class="container">
         ${backButton()}
         <div class="page-heading">
@@ -498,11 +525,12 @@ export function initTournamentPortal({ supabase, root, getUser, canManage, visib
           ])
 
         } else {
-          const rows = squadRows.filter(
-            r => String(r.tournament_id) === String(id)
-          )
+          const rows = squadRows.filter(r => {
+            if (String(r.tournament_id) !== String(id) || r.squad_role !== 'selected') return false
+            return registrationFor(id, r.player_id)?.parent_confirmation === 'confirmed'
+          })
 
-          csvDownload(`${t.name}-squad.csv`, [
+          csvDownload(`${t.name}-final-confirmed-squad.csv`, [
             ['Player', 'Age Group', 'Squad Role', 'Parent Confirmation'],
             ...rows.map(r => {
               const p = playerMap.get(String(r.player_id))
