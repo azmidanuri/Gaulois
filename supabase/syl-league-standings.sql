@@ -55,7 +55,7 @@ stable
 security definer
 set search_path = public
 set row_security = off
-as $
+as $$
   select exists (
     select 1 from public.profiles p
     where p.id = auth.uid()
