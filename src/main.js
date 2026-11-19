@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 import './style.css'
 import './portal-features.css'
 import { initTournamentPortal } from './tournament.js'
+import { initVideoPortal } from './videos.js'
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -2044,6 +2045,21 @@ const tournamentPortal = initTournamentPortal({
   showMessage
 })
 
+const videoPortal = initVideoPortal({
+  supabase,
+  root,
+  getUser: () => user,
+  getProfile: () => profile,
+  getTeams: () => activeTeams(),
+  getVisiblePlayers: () => visiblePlayers(),
+  canManage,
+  header,
+  backButton,
+  icon,
+  esc,
+  showMessage
+})
+
 // RENDERING
 
 async function render() {
@@ -2077,7 +2093,7 @@ async function render() {
     } else if (currentPage === 'payment') {
       root.innerHTML = placeholderPage('Payment', 'credit', 'Payment information will be available here.')
     } else if (currentPage === 'videos') {
-      root.innerHTML = placeholderPage('Videos', 'video', 'Academy videos will be available here.')
+      await videoPortal.renderVideos()
     } else {
       currentPage = 'home'
       root.innerHTML = homePage()
