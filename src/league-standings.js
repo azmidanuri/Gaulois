@@ -213,7 +213,7 @@ export function initLeagueStandings({ supabase, canManage, esc, formatDate, show
   async function saveCompetition(event) {
     event.preventDefault();
     if (!canManage()) return;
-    const data = new FormData(event.currentTarget);
+    const data = new FormData(event.target);
     const age_group = String(data.get('age_group') || '').trim().toUpperCase();
     const division = String(data.get('division') || '').trim();
     const season = String(data.get('season') || '').trim();
@@ -229,7 +229,7 @@ export function initLeagueStandings({ supabase, canManage, esc, formatDate, show
   async function saveStanding(event) {
     event.preventDefault();
     if (!canManage() || !selectedId) return;
-    const data = new FormData(event.currentTarget);
+    const data = new FormData(event.target);
     const team_name = String(data.get('team_name') || '').trim();
     const payload = { competition_id: selectedId, team_name };
     ['played','won','drawn','lost','goals_for','goals_against','points'].forEach(k => payload[k] = Number(data.get(k)));
@@ -259,7 +259,7 @@ export function initLeagueStandings({ supabase, canManage, esc, formatDate, show
   async function saveMatch(event) {
     event.preventDefault();
     if (!canManage() || !selectedId) return;
-    const data = new FormData(event.currentTarget);
+    const data = new FormData(event.target);
     const homeRaw = String(data.get('home_score') || '').trim();
     const awayRaw = String(data.get('away_score') || '').trim();
     if ((homeRaw === '') !== (awayRaw === '')) return showMessage('Enter both scores, or leave both blank for an upcoming fixture.');
