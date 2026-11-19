@@ -219,8 +219,9 @@ export function initLeagueStandings({ supabase, canManage, esc, formatDate, show
     const season = String(data.get('season') || '').trim();
     const source_url = String(data.get('source_url') || '').trim() || null;
     if (!age_group || !division || !season) return showMessage('Complete the age group, division and season.');
-    const { error } = await supabase.from('syl_competitions').insert({ age_group, division, season, source_url, created_by: (await supabase.auth.getUser()).data.user?.id });
+    const { data: created, error } = await supabase.from('syl_competitions').insert({ age_group, division, season, source_url, created_by: (await supabase.auth.getUser()).data.user?.id }).select('id').single();
     if (error) return showMessage('Unable to create competition: ' + error.message);
+    selectedId = String(created.id);
     showMessage('Competition created.');
     rootRefresh();
   }
