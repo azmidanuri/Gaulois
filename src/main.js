@@ -2,6 +2,8 @@ import { createClient } from '@supabase/supabase-js'
 import './style.css'
 import './portal-features.css'
 import { initTournamentPortal } from './tournament.js'
+import { initLeagueStandings } from './league-standings.js'
+import './league-standings.css'
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -436,6 +438,7 @@ function homePage() {
         ${menuCard('Player Profiles', 'users', 'profile')}
         ${menuCard('Attendance', 'calendar', 'attendance')}
         ${menuCard('Fixtures & Results', 'trophy', 'fixtures')}
+        ${menuCard('League Standings', 'trophy', 'league-standings')}
         ${menuCard('Tournaments', 'calendar', 'tournaments')}
         ${menuCard('Announcements', 'megaphone', 'announcements')}
         ${menuCard('Matchday Squad', 'users', 'squads')}
@@ -2022,6 +2025,8 @@ function placeholderPage(title, iconName, message) {
 }
 
 // TOURNAMENT PORTAL
+const leagueStandings = initLeagueStandings({ supabase, canManage, esc, formatDate, showMessage })
+
 const tournamentPortal = initTournamentPortal({
   supabase,
   root,
@@ -2064,6 +2069,8 @@ async function render() {
       await announcementsPage()
     } else if (currentPage === 'squads') {
       await squadsPage()
+    } else if (currentPage === 'league-standings') {
+      root.innerHTML = await leagueStandings.render()
     } else if (currentPage === 'tournaments') {
       await tournamentPortal.renderTournamentPage()
     } else if (currentPage === 'payment') {
