@@ -129,9 +129,13 @@ export function initVideoPortal({
           <label for="video-description">Description (optional)</label>
           <textarea id="video-description" name="description" rows="3" maxlength="1000"
             placeholder="Add match details, opponent or tournament name">${esc(value.description || '')}</textarea>
+          <label class="video-privacy-confirm">
+            <input type="checkbox" name="privacy_confirmed" required>
+            <span>I have checked the Veo sharing visibility and academy approval for this footage.</span>
+          </label>
           <button class="primary-btn" type="submit">${editingVideo ? 'Save changes' : 'Add to video library'}</button>
         </form>
-        <p class="video-privacy-note">Before sharing, staff must confirm that the Veo recording or clip has the correct visibility settings for its intended viewers.</p>
+        <p class="video-privacy-note"><strong>Important:</strong> The portal login protects the video listing, not the Veo player link. A Veo recording set to Public can be watched by anyone who receives or forwards its link. Only add footage the academy has approved for this type of sharing.</p>
       </section>
     `
   }
