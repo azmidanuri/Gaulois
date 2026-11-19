@@ -137,6 +137,10 @@ function activeTeams() {
 
 function teamNames() {
   return activeTeams().map(t => t.name)
+    .sort((a, b) => a.localeCompare(b, undefined, {
+      numeric: true,
+      sensitivity: 'base'
+    }))
 }
 
 function teamOptions(selected = '') {
@@ -415,9 +419,12 @@ function menuCard(title, iconName, page) {
 
 function homePage() {
   const roster = visiblePlayers()
-  const names = profile.role === 'parent'
+  const names = (profile.role === 'parent'
     ? [...new Set(roster.map(p => p.age_group).filter(Boolean))]
-    : teamNames()
+    : teamNames()).sort((a, b) => a.localeCompare(b, undefined, {
+      numeric: true,
+      sensitivity: 'base'
+    }))
 
   const visibleTeams = names.map(name => findTeam(name) || {
     name,
@@ -433,20 +440,21 @@ function homePage() {
       </div>
 
       <section class="menu-grid">
+        ${menuCard('Announcement', 'megaphone', 'announcements')}
         ${menuCard('Player Profiles', 'users', 'profile')}
+        ${menuCard('Payment', 'credit', 'payment')}
         ${menuCard('Attendance', 'calendar', 'attendance')}
         ${menuCard('Fixtures & Results', 'trophy', 'fixtures')}
-        ${menuCard('Tournaments', 'calendar', 'tournaments')}
-        ${menuCard('Announcements', 'megaphone', 'announcements')}
         ${menuCard('Matchday Squad', 'users', 'squads')}
-        ${menuCard('Payment', 'credit', 'payment')}
-        ${menuCard('Videos', 'video', 'videos')}
+        ${menuCard('Tournaments', 'calendar', 'tournaments')}
 
         ${canManage() ? `
-          ${menuCard('Team Management', 'shield', 'team-management')}
           ${menuCard('Player Management', 'user', 'player-management')}
           ${menuCard('Squad Management', 'football', 'squad-management')}
+          ${menuCard('Team Management', 'shield', 'team-management')}
         ` : ''}
+
+        ${menuCard('Videos', 'video', 'videos')}
       </section>
 
       <div class="section-heading">
