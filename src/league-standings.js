@@ -95,12 +95,72 @@ export function initLeagueStandings({ supabase, canManage, esc, formatDate, show
   }
 
   function sortedStandings() {
-    return standings.slice().sort((a, b) =>
-      num(b.points) - num(a.points) ||
-      num(b.goal_difference) - num(a.goal_difference) ||
-      num(b.goals_for) - num(a.goals_for) ||
-      a.team_name.localeCompare(b.team_name)
-    );
+    const byPoints = new Map();
+    standings.forEach(row => {
+      const key = num(row.points);
+      if (!byPoints.has(key)) byPoints.set(key, []);
+      byPoints.get(key).push(row);
+    });
+
+    const groups = [...byPoints.entries()].sort((a, b) => b[0] - a[0]);
+    const ordered = [];
+
+    groups.forEach(([, group]) => {
+      if (group.length === 1) {
+        ordered.push(group[0]);
+        return;
+      }
+
+      // SYL uses head-to-head results before overall goal difference
+      // when teams finish level on points. For groups of 3+, use a
+      // mini-table of completed matches between the tied teams.
+      const names = new Map(group.map(row => [String(row.team_name).trim().toLowerCase(), row]));
+      const headToHead = new Map(group.map(row => [row, { points: 0, goalDifference: 0, played: 0 }]));
+
+      matches.forEach(match => {
+        if (match.home_score === null || match.home_score === undefined ||
+            match.away_score === null || match.away_score === undefined) return;
+        const home = names.get(String(match.home_team || '').trim().toLowerCase());
+        const away = names.get(String(match.away_team || '').trim().toLowerCase());
+        if (!home || !away || home === away) return;
+
+        const homeScore = num(match.home_score);
+        const awayScore = num(match.away_score);
+        const homeStats = headToHead.get(home);
+        const awayStats = headToHead.get(away);
+        homeStats.played++;
+        awayStats.played++;
+        homeStats.goalDifference += homeScore - awayScore;
+        awayStats.goalDifference += awayScore - homeScore;
+        if (homeScore > awayScore) homeStats.points += 3;
+        else if (awayScore > homeScore) awayStats.points += 3;
+        else {
+          homeStats.points++;
+          awayStats.points++;
+        }
+      });
+
+      group.sort((a, b) => {
+        const ah = headToHead.get(a);
+        const bh = headToHead.get(b);
+        // Only apply the head-to-head mini-table when there is a recorded
+        // completed match between teams in this points-tied group.
+        const hasHeadToHead = group.some(row => headToHead.get(row).played > 0);
+        if (hasHeadToHead) {
+          return bh.points - ah.points ||
+            bh.goalDifference - ah.goalDifference ||
+            num(b.goal_difference) - num(a.goal_difference) ||
+            num(b.goals_for) - num(a.goals_for) ||
+            a.team_name.localeCompare(b.team_name);
+        }
+        return num(b.goal_difference) - num(a.goal_difference) ||
+          num(b.goals_for) - num(a.goals_for) ||
+          a.team_name.localeCompare(b.team_name);
+      });
+      ordered.push(...group);
+    });
+
+    return ordered;
   }
 
   function competitionOptions() {
@@ -187,9 +247,9 @@ export function initLeagueStandings({ supabase, canManage, esc, formatDate, show
       (c ? '<section class="ls-competition-title"><div><span class="ls-kicker">' + esc(c.season) + ' SEASON</span>' +
         '<h3>' + esc(c.age_group + ' ' + c.division) + '</h3><p>League table</p></div>' +
         '<span class="ls-source-tag">SYL</span></section>' +
-        '<section class="ls-standings-card"><div class="ls-card-heading"><div><h3>Standings</h3><p>Sorted by points, goal difference and goals scored</p></div>' +
+        '<section class="ls-standings-card"><div class="ls-card-heading"><div><h3>Standings</h3><p>Sorted by points, then head-to-head results, then overall goal difference</p></div>' +
         '<span class="ls-team-count">' + standings.length + ' teams</span></div>' + standingsTable() +
-        '<div class="ls-footnote">Gaulois Aerion teams are highlighted. Last updated: ' +
+        '<div class="ls-footnote">Gaulois Aerion teams are highlighted. For teams level on points, recorded head-to-head results are applied before overall goal difference. Last updated: ' +
         (standings.length ? esc(new Date(Math.max(...standings.map(r => new Date(r.updated_at || 0).getTime()).filter(Number.isFinite))).toLocaleDateString('en-SG')) : 'Not yet updated') +
         '</div></section>' + matchesPanel() +
         (c.source_url ? '<p class="ls-source-link">Source: <a href="' + esc(c.source_url) + '" target="_blank" rel="noopener">Official SYL competition page</a></p>' : '<p class="ls-source-link">Source: Staff-entered data. Official SYL source link has not been added.</p>') :
