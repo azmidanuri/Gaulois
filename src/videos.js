@@ -15,6 +15,7 @@ export function initVideoPortal({
 }) {
   let videos = []
   let editingVideo = null
+  let activeVideoId = null
   let activeFilter = 'all'
   let searchText = ''
   let isLoading = false
@@ -69,9 +70,22 @@ export function initVideoPortal({
           </div>
           <h3>${esc(video.title)}</h3>
           ${video.description ? `<p>${esc(video.description)}</p>` : ''}
-          <a class="primary-btn video-watch-btn" href="${esc(video.video_url)}" target="_blank" rel="noopener noreferrer">
-            ${icon('video', 16)} Watch on Veo
-          </a>
+          <button class="primary-btn video-watch-btn" type="button" data-action="video-play" data-id="${esc(video.id)}">
+            ${icon('video', 16)} ${activeVideoId === video.id ? 'Close video' : 'Watch in portal'}
+          </button>
+          ${activeVideoId === video.id ? `
+            <div class="video-embedded-player">
+              <iframe
+                src="${esc(video.video_url)}"
+                title="${esc(video.title)}"
+                loading="lazy"
+                allow="autoplay; fullscreen; picture-in-picture"
+                allowfullscreen
+                referrerpolicy="strict-origin-when-cross-origin">
+              </iframe>
+              <p>If the player does not load, Veo may be preventing playback inside external websites for this recording.</p>
+            </div>
+          ` : ''}
           ${staffActions}
         </div>
       </article>
@@ -202,6 +216,7 @@ export function initVideoPortal({
 
   async function renderVideos() {
     editingVideo = null
+    activeVideoId = null
     root.innerHTML = pageMarkup()
     try {
       await loadVideos()
@@ -273,6 +288,10 @@ export function initVideoPortal({
     try {
       if (action === 'video-filter') {
         activeFilter = target.dataset.filter || 'all'
+        activeVideoId = null
+        root.innerHTML = pageMarkup()
+      } else if (action === 'video-play') {
+        activeVideoId = activeVideoId === target.dataset.id ? null : target.dataset.id
         root.innerHTML = pageMarkup()
       } else if (action === 'video-edit') {
         if (!canManage()) return
