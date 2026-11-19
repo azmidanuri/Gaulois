@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import './style.css'
 import './portal-features.css'
+import { initTournamentPortal } from './tournament.js'
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -435,6 +436,7 @@ function homePage() {
         ${menuCard('Player Profiles', 'users', 'profile')}
         ${menuCard('Attendance', 'calendar', 'attendance')}
         ${menuCard('Fixtures & Results', 'trophy', 'fixtures')}
+        ${menuCard('Tournaments', 'calendar', 'tournaments')}
         ${menuCard('Announcements', 'megaphone', 'announcements')}
         ${menuCard('Matchday Squad', 'users', 'squads')}
         ${menuCard('Payment', 'credit', 'payment')}
@@ -2019,6 +2021,21 @@ function placeholderPage(title, iconName, message) {
   `
 }
 
+// TOURNAMENT PORTAL
+const tournamentPortal = initTournamentPortal({
+  supabase,
+  root,
+  getUser: () => user,
+  canManage,
+  visiblePlayers,
+  header,
+  backButton,
+  icon,
+  esc,
+  formatDate,
+  showMessage
+})
+
 // RENDERING
 
 async function render() {
@@ -2047,6 +2064,8 @@ async function render() {
       await announcementsPage()
     } else if (currentPage === 'squads') {
       await squadsPage()
+    } else if (currentPage === 'tournaments') {
+      await tournamentPortal.renderTournamentPage()
     } else if (currentPage === 'payment') {
       root.innerHTML = placeholderPage('Payment', 'credit', 'Payment information will be available here.')
     } else if (currentPage === 'videos') {
