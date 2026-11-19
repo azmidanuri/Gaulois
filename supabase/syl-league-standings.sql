@@ -54,7 +54,8 @@ language sql
 stable
 security definer
 set search_path = public
-as $$
+set row_security = off
+as $
   select exists (
     select 1 from public.profiles p
     where p.id = auth.uid()
