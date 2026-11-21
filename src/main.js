@@ -27,6 +27,7 @@ let selectedPlayer = null
 let selectedManagementTeam = null
 let isSigningUp = false
 let fixtures = []
+let editingFixtureId = null
 let announcements = []
 let squadSelections = []
 
@@ -1493,62 +1494,63 @@ async function loadFixtures() {
   )
 }
 
-function fixtureForm() {
+function fixtureForm(fixture = null) {
+  const editing = Boolean(fixture)
   return `
-    <section class="activity-card">
-      <h3>${icon('plus', 19)} Add Fixture / Result</h3>
+    <section class="activity-card" id="fixture-editor">
+      <h3>${icon(editing ? 'edit' : 'plus', 19)} ${editing ? 'Edit Fixture / Result' : 'Add Fixture / Result'}</h3>
       <form id="fixture-form" class="portal-form-grid">
         <div>
           <label>Team</label>
-          <select id="fixture-team" required>${teamOptions('U12')}</select>
+          <select id="fixture-team" required>${teamOptions(fixture?.age_group || 'U12')}</select>
         </div>
         <div>
           <label>Competition</label>
-          <input id="fixture-competition" placeholder="e.g. League / Cup">
+          <input id="fixture-competition" value="${esc(fixture?.competition || '')}" placeholder="e.g. League / Cup">
         </div>
         <div>
           <label>Opponent</label>
-          <input id="fixture-opponent" required placeholder="Opponent name">
+          <input id="fixture-opponent" value="${esc(fixture?.opponent || '')}" required placeholder="Opponent name">
         </div>
         <div>
           <label>Home or Away</label>
           <select id="fixture-location">
-            <option value="Home">Home</option>
-            <option value="Away">Away</option>
-            <option value="Neutral">Neutral</option>
+            <option value="Home" ${(fixture?.home_away || 'Home') === 'Home' ? 'selected' : ''}>Home</option>
+            <option value="Away" ${fixture?.home_away === 'Away' ? 'selected' : ''}>Away</option>
+            <option value="Neutral" ${fixture?.home_away === 'Neutral' ? 'selected' : ''}>Neutral</option>
           </select>
         </div>
         <div>
           <label>Date</label>
-          <input id="fixture-date" type="date" required>
+          <input id="fixture-date" type="date" value="${esc(fixture?.fixture_date || '')}" required>
         </div>
         <div>
           <label>Kick-off</label>
-          <input id="fixture-time" type="time">
+          <input id="fixture-time" type="time" value="${esc(fixture?.kick_off || '')}">
         </div>
         <div class="form-span">
           <label>Venue</label>
-          <input id="fixture-venue" placeholder="Match venue">
+          <input id="fixture-venue" value="${esc(fixture?.venue || '')}" placeholder="Match venue">
         </div>
         <div>
           <label>Our score (optional)</label>
-          <input id="fixture-home-score" type="number" min="0" placeholder="-">
+          <input id="fixture-home-score" type="number" min="0" value="${fixture?.home_score ?? ''}" placeholder="-">
         </div>
         <div>
           <label>Opponent score (optional)</label>
-          <input id="fixture-away-score" type="number" min="0" placeholder="-">
+          <input id="fixture-away-score" type="number" min="0" value="${fixture?.away_score ?? ''}" placeholder="-">
         </div>
         <label class="publish-option form-span">
-          <input id="fixture-published" type="checkbox" checked> Publish to parents
+          <input id="fixture-published" type="checkbox" ${fixture?.is_published !== false ? 'checked' : ''}> Publish to parents
         </label>
-        <div class="form-span">
-          <button class="primary-btn" type="submit">Save Fixture</button>
+        <div class="form-span" style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="primary-btn" type="submit">${editing ? 'Save Changes' : 'Save Fixture'}</button>
+          ${editing ? '<button class="secondary-btn" type="button" data-action="cancel-fixture-edit">Cancel</button>' : ''}
         </div>
       </form>
     </section>
   `
 }
-
 function fixtureCard(f) {
   const hasScore = f.home_score !== null && f.home_score !== undefined &&
     f.away_score !== null && f.away_score !== undefined
@@ -1584,6 +1586,7 @@ function fixtureCard(f) {
 
       ${canManage() ? `
         <div class="fixture-admin-actions">
+          <button class="view-btn" data-action="edit-fixture" data-id="${f.id}">${icon('edit', 14)} Edit</button>
           <button class="delete-btn" data-action="delete-fixture"
             data-id="${f.id}" data-opponent="${esc(f.opponent)}">Delete</button>
         </div>
@@ -1597,6 +1600,9 @@ async function fixturesPage() {
 
   const upcoming = fixtures.filter(f => !dateIsPast(f.fixture_date))
   const past = fixtures.filter(f => dateIsPast(f.fixture_date))
+  const editingFixture = editingFixtureId
+    ? fixtures.find(f => String(f.id) === String(editingFixtureId))
+    : null
 
   root.innerHTML = `
     ${header()}
@@ -1607,7 +1613,7 @@ async function fixturesPage() {
         <p class="muted">Upcoming matches, scores and competition updates.</p>
       </div>
 
-      ${canManage() ? fixtureForm() : ''}
+      ${canManage() ? fixtureForm(editingFixture) : ''}
 
       <section class="activity-section">
         <div class="section-heading">
@@ -1627,7 +1633,6 @@ async function fixturesPage() {
     </main>
   `
 }
-
 async function createFixture(event) {
   event.preventDefault()
   if (!canManage()) return
@@ -1645,17 +1650,36 @@ async function createFixture(event) {
     venue: document.querySelector('#fixture-venue').value.trim() || null,
     home_score: homeRaw === '' ? null : Number(homeRaw),
     away_score: awayRaw === '' ? null : Number(awayRaw),
-    is_published: document.querySelector('#fixture-published').checked,
-    created_by: user.id
+    is_published: document.querySelector('#fixture-published').checked
   }
 
-  const { error } = await supabase.from('fixtures').insert(payload)
-  if (error) return showMessage('Unable to save fixture: ' + error.message)
+  if (!payload.opponent || !payload.fixture_date) {
+    return showMessage('Please enter an opponent and match date.')
+  }
 
-  showMessage('Fixture saved successfully.')
+  let result
+  if (editingFixtureId) {
+    result = await supabase.from('fixtures')
+      .update(payload)
+      .eq('id', editingFixtureId)
+      .select('id')
+  } else {
+    result = await supabase.from('fixtures')
+      .insert({ ...payload, created_by: user.id })
+      .select('id')
+  }
+
+  if (result.error) {
+    return showMessage('Unable to ' + (editingFixtureId ? 'update' : 'save') + ' fixture: ' + result.error.message)
+  }
+  if (!result.data?.length) {
+    return showMessage('No fixture was changed. Check your Supabase fixtures UPDATE permission.')
+  }
+
+  editingFixtureId = null
+  showMessage('Fixture ' + (result.data.length ? 'saved successfully.' : 'updated.') )
   await fixturesPage()
 }
-
 async function deleteFixture(id, opponent) {
   if (!canManage() || !confirm(`Delete the fixture against ${opponent}?`)) return
 
@@ -2172,6 +2196,14 @@ root.addEventListener('click', async event => {
       await saveAttendance(target.dataset.player, target.dataset.activity)
     } else if (action === 'delete-activity') {
       await deleteActivity(target.dataset.activity, target.dataset.title)
+    } else if (action === 'edit-fixture') {
+      if (!canManage()) return
+      editingFixtureId = target.dataset.id
+      await fixturesPage()
+      document.querySelector('#fixture-editor')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    } else if (action === 'cancel-fixture-edit') {
+      editingFixtureId = null
+      await fixturesPage()
     } else if (action === 'delete-fixture') {
       await deleteFixture(target.dataset.id, target.dataset.opponent)
     } else if (action === 'delete-announcement') {
