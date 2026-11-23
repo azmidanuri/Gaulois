@@ -359,6 +359,13 @@ async function login(email, password) {
   user = data.user
   await loadProfile()
 
+  if (profile.is_active === false) {
+    await supabase.auth.signOut()
+    user = null
+    profile = null
+    throw new Error("This account's portal access has been deactivated. Please contact an academy administrator.")
+  }
+
   if (loginType === 'staff' && profile.role === 'parent') {
     await supabase.auth.signOut()
     user = null
@@ -2102,11 +2109,19 @@ async function saveSquad(fixtureId) {
 
 // STAFF ACCOUNT MANAGEMENT
 
-function staffAccountsPage() {
+async function staffAccountsPage() {
   if (!isAdmin()) {
     currentPage = 'home'
     return homePage()
   }
+
+  const { data, error } = await supabase.functions.invoke('create-staff-user', {
+    body: { action: 'list_coaches' }
+  })
+  if (error) throw new Error(error.message || 'Coach accounts could not be loaded.')
+  if (data?.error) throw new Error(data.error)
+
+  const accounts = data?.accounts || []
 
   return `
     ${header()}
@@ -2114,7 +2129,7 @@ function staffAccountsPage() {
       ${backButton()}
       <div class="page-heading">
         <h2>Staff Account Management</h2>
-        <p class="muted">Create administrator and coach accounts with a one-time temporary password.</p>
+        <p class="muted">Create staff accounts and manage coach portal access.</p>
       </div>
       <section class="activity-card staff-account-card">
         <h3>${icon('plus', 19)} Create Staff Account</h3>
@@ -2128,12 +2143,56 @@ function staffAccountsPage() {
             <option value="coach">Coach</option>
             <option value="admin">Administrator</option>
           </select>
-          <p class="muted staff-account-note">A unique temporary password will be generated. Share it with the staff member securely. They must change it when they first log in.</p>
+          <p class="muted staff-account-note">A unique temporary password will be generated. Share it securely. New staff must change it on first login.</p>
           <button type="submit" class="primary-btn">Create Staff Account</button>
         </form>
       </section>
+
+      <section class="activity-card staff-access-card">
+        <div class="section-heading">
+          <div>
+            <h3>Coach Access Management</h3>
+            <p class="muted">Deactivate access without deleting the coach's records. Access can be restored later.</p>
+          </div>
+        </div>
+        ${accounts.length ? `
+          <div class="staff-access-list">
+            ${accounts.map(account => `
+              <article class="staff-access-row">
+                <div class="staff-access-details">
+                  <strong>${esc(account.full_name || 'Unnamed coach')}</strong>
+                  <small>${esc(account.email || 'Email unavailable')}</small>
+                  <span class="staff-access-status ${account.is_active === false ? 'is-inactive' : 'is-active'}">
+                    ${account.is_active === false ? 'ACCESS DEACTIVATED' : 'ACCESS ACTIVE'}
+                  </span>
+                </div>
+                ${account.is_active === false
+                  ? `<button class="secondary-btn" data-action="restore-coach" data-user-id="${esc(account.id)}" data-name="${esc(account.full_name || account.email || 'this coach')}">Restore Access</button>`
+                  : `<button class="danger-btn" data-action="deactivate-coach" data-user-id="${esc(account.id)}" data-name="${esc(account.full_name || account.email || 'this coach')}">Remove Access</button>`}
+              </article>
+            `).join('')}
+          </div>
+        ` : '<div class="empty-state">No coach accounts found.</div>'}
+      </section>
     </main>
   `
+}
+
+async function manageCoachAccess(userId, action, name) {
+  if (!isAdmin()) throw new Error('Only administrators can manage coach access.')
+  const verb = action === 'deactivate_coach' ? 'deactivate access for' : 'restore access for'
+  if (!confirm(`Are you sure you want to ${verb} ${name}?`)) return
+
+  const { data, error } = await supabase.functions.invoke('create-staff-user', {
+    body: { action, targetUserId: userId }
+  })
+  if (error) throw new Error(error.message || 'Coach access could not be updated.')
+  if (data?.error) throw new Error(data.error)
+
+  showMessage(action === 'deactivate_coach'
+    ? 'Coach portal access has been deactivated.'
+    : 'Coach portal access has been restored.')
+  root.innerHTML = await staffAccountsPage()
 }
 
 async function createStaffAccount(event) {
@@ -2167,7 +2226,7 @@ async function createStaffAccount(event) {
         <div class="temporary-password-value">${esc(data.temporaryPassword)}</div>
         <button class="secondary-btn" data-action="copy-temp-password" data-password="${esc(data.temporaryPassword)}">Copy Temporary Password</button>
         <p class="muted staff-account-note">This password is shown only once. The staff member must create a new password on first login.</p>
-        <button class="primary-btn" data-action="page" data-page="staff-accounts">Create Another Account</button>
+        <button class="primary-btn" data-action="page" data-page="staff-accounts">Back to Staff Management</button>
       </section>
     </main>
   `
@@ -2234,7 +2293,7 @@ async function render() {
         currentPage = 'home'
         root.innerHTML = homePage()
       } else {
-        root.innerHTML = staffAccountsPage()
+        root.innerHTML = await staffAccountsPage()
       }
     } else if (currentPage === 'home') {
       root.innerHTML = homePage()
@@ -2356,6 +2415,10 @@ root.addEventListener('click', async event => {
       await deleteAnnouncement(target.dataset.id, target.dataset.title)
     } else if (action === 'save-squad') {
       await saveSquad(target.dataset.fixture)
+    } else if (action === 'deactivate-coach') {
+      await manageCoachAccess(target.dataset.userId, 'deactivate_coach', target.dataset.name || 'this coach')
+    } else if (action === 'restore-coach') {
+      await manageCoachAccess(target.dataset.userId, 'restore_coach', target.dataset.name || 'this coach')
     } else if (action === 'copy-temp-password') {
       await navigator.clipboard.writeText(target.dataset.password || '')
       showMessage('Temporary password copied.')
@@ -2444,7 +2507,13 @@ async function startApp() {
 
     try {
       await loadProfile()
-      if (profile.must_change_password) {
+      if (profile.is_active === false) {
+        await supabase.auth.signOut()
+        user = null
+        profile = null
+        currentPage = 'login'
+        loginType = null
+      } else if (profile.must_change_password) {
         currentPage = 'password-change'
       } else {
         await refreshPortalData()
