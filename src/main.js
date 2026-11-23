@@ -521,8 +521,9 @@ function homePage() {
           ${menuCard('Team Management', 'shield', 'team-management')}
         ` : ''}
 
-        ${isAdmin() ? menuCard('Staff Account Management', 'shield', 'staff-accounts') : ''}
         ${menuCard('Videos', 'video', 'videos')}
+        ${isAdmin() ? menuCard('Staff Account Management', 'shield', 'staff-accounts') : ''}
+        ${isAdmin() ? menuCard('Admin Parent Management', 'users', 'parent-management') : ''}
       </section>
 
       <div class="section-heading">
@@ -2107,6 +2108,119 @@ async function saveSquad(fixtureId) {
   await squadsPage()
 }
 
+// ADMIN PARENT MANAGEMENT
+
+async function parentManagementPage() {
+  if (!isAdmin()) {
+    currentPage = 'home';
+    return homePage();
+  }
+
+  const { data, error } = await supabase.functions.invoke('create-staff-user', {
+    body: { action: 'list_parent_links' }
+  });
+  if (error) throw new Error(error.message || 'Parent accounts could not be loaded.');
+  if (data?.error) throw new Error(data.error);
+
+  const parents = data?.parents || [];
+  const parentPlayers = data?.players || [];
+  const links = data?.links || [];
+  const parentOptions = parents.map(parent =>
+    \`<option value="\${esc(parent.id)}">\${esc(parent.full_name || 'Unnamed parent')} — \${esc(parent.email || 'Email unavailable')}</option>\`
+  ).join('');
+  const playerOptions = parentPlayers.map(player =>
+    \`<option value="\${esc(player.id)}">\${esc(player.name)} — \${esc(player.age_group || 'Team not assigned')}</option>\`
+  ).join('');
+  const parentNames = new Map(parents.map(parent => [parent.id, parent.full_name || parent.email || 'Parent']));
+  const playerNames = new Map(parentPlayers.map(player => [player.id, player.name || 'Player']));
+  const playerTeams = new Map(parentPlayers.map(player => [player.id, player.age_group || 'Team not assigned']));
+
+  return \`
+    \${header()}
+    <main class="container">
+      \${backButton()}
+      <div class="page-heading">
+        <h2>Admin Parent Management</h2>
+        <p class="muted">Link existing parent accounts to academy player profiles. Parent self-registration remains unchanged.</p>
+      </div>
+      <section class="activity-card">
+        <h3>\${icon('plus', 19)} Link Parent to Player</h3>
+        \${parents.length && parentPlayers.length ? \`
+          <form id="parent-link-form">
+            <label for="parent-account-select">Parent Account</label>
+            <select id="parent-account-select" required>
+              <option value="">Select a registered parent</option>
+              \${parentOptions}
+            </select>
+            <label for="parent-player-select">Player</label>
+            <select id="parent-player-select" required>
+              <option value="">Select a player</option>
+              \${playerOptions}
+            </select>
+            <p class="muted">You can link multiple children to one parent and multiple parents to one child.</p>
+            <button type="submit" class="primary-btn">Link Parent to Player</button>
+          </form>
+        \` : '<div class="empty-state">You need at least one registered parent account and one player profile before creating a link.</div>'}
+      </section>
+      <section class="activity-card">
+        <div class="section-heading">
+          <div>
+            <h3>Existing Parent–Player Links</h3>
+            <p class="muted">Remove a link if a parent should no longer see that player.</p>
+          </div>
+        </div>
+        \${links.length ? \`
+          <div class="staff-access-list">
+            \${links.map(link => \`
+              <article class="staff-access-row">
+                <div class="staff-access-details">
+                  <strong>\${esc(parentNames.get(link.parent_id) || 'Parent account')}</strong>
+                  <small>\${esc(link.parent_email || '')}</small>
+                  <span>\${esc(playerNames.get(link.player_id) || 'Player')} · \${esc(playerTeams.get(link.player_id) || '')}</span>
+                </div>
+                <button class="danger-btn" data-action="unlink-parent-player"
+                  data-parent-id="\${esc(link.parent_id)}"
+                  data-player-id="\${esc(link.player_id)}"
+                  data-parent-name="\${esc(parentNames.get(link.parent_id) || 'this parent')}"
+                  data-player-name="\${esc(playerNames.get(link.player_id) || 'this player')}">Unlink</button>
+              </article>
+            \`).join('')}
+          </div>
+        \` : '<div class="empty-state">No parent-player links have been created yet.</div>'}
+      </section>
+    </main>
+  \`;
+}
+
+async function saveParentPlayerLink(event) {
+  event.preventDefault();
+  if (!isAdmin()) throw new Error('Only administrators can link parent accounts to players.');
+  const parentId = document.querySelector('#parent-account-select')?.value;
+  const playerId = document.querySelector('#parent-player-select')?.value;
+  if (!parentId || !playerId) throw new Error('Select both a parent account and a player.');
+
+  const { data, error } = await supabase.functions.invoke('create-staff-user', {
+    body: { action: 'link_parent_player', parentId, playerId }
+  });
+  if (error) throw new Error(error.message || 'The parent and player could not be linked.');
+  if (data?.error) throw new Error(data.error);
+  showMessage(data?.alreadyLinked ? 'This parent is already linked to that player.' : 'Parent successfully linked to player.');
+  root.innerHTML = await parentManagementPage();
+}
+
+async function unlinkParentPlayer(parentId, playerId, parentName, playerName) {
+  if (!isAdmin()) throw new Error('Only administrators can remove parent-player links.');
+  if (!confirm(\`Unlink \${parentName} from \${playerName}? The parent will no longer see this player's portal information.\`)) return;
+
+  const { data, error } = await supabase.functions.invoke('create-staff-user', {
+    body: { action: 'unlink_parent_player', parentId, playerId }
+  });
+  if (error) throw new Error(error.message || 'The parent-player link could not be removed.');
+  if (data?.error) throw new Error(data.error);
+  showMessage('Parent-player link removed.');
+  root.innerHTML = await parentManagementPage();
+}
+
 // STAFF ACCOUNT MANAGEMENT
 
 async function staffAccountsPage() {
@@ -2295,6 +2409,13 @@ async function render() {
       } else {
         root.innerHTML = await staffAccountsPage()
       }
+    } else if (currentPage === 'parent-management') {
+      if (!isAdmin()) {
+        currentPage = 'home'
+        root.innerHTML = homePage()
+      } else {
+        root.innerHTML = await parentManagementPage()
+      }
     } else if (currentPage === 'home') {
       root.innerHTML = homePage()
     } else if (currentPage === 'roster') {
@@ -2419,6 +2540,8 @@ root.addEventListener('click', async event => {
       await manageCoachAccess(target.dataset.userId, 'deactivate_coach', target.dataset.name || 'this coach')
     } else if (action === 'restore-coach') {
       await manageCoachAccess(target.dataset.userId, 'restore_coach', target.dataset.name || 'this coach')
+    } else if (action === 'unlink-parent-player') {
+      await unlinkParentPlayer(target.dataset.parentId, target.dataset.playerId, target.dataset.parentName || 'this parent', target.dataset.playerName || 'this player')
     } else if (action === 'copy-temp-password') {
       await navigator.clipboard.writeText(target.dataset.password || '')
       showMessage('Temporary password copied.')
@@ -2450,6 +2573,12 @@ root.addEventListener('submit', async event => {
       await createStaffAccount(event)
     } catch (error) {
       showMessage(error.message || 'The staff account could not be created.')
+    }
+  } else if (form.id === 'parent-link-form') {
+    try {
+      await saveParentPlayerLink(event)
+    } catch (error) {
+      showMessage(error.message || 'The parent and player could not be linked.')
     }
   } else if (form.id === 'login-form') {
     event.preventDefault()
