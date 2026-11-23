@@ -71,11 +71,77 @@ Deno.serve(async (req: Request) => {
     role?: string;
     action?: string;
     targetUserId?: string;
+    parentId?: string;
+    playerId?: string;
   };
   try {
     payload = await req.json();
   } catch {
     return jsonResponse({ error: "Invalid request body." }, 400);
+  }
+
+  // Parent account and player linking is restricted to administrators.
+  if (payload.action === "list_parent_links") {
+    const [
+      { data: parentProfiles, error: parentsError },
+      { data: playerRows, error: playersError },
+      { data: linkRows, error: linksError },
+      { data: authData, error: authError },
+    ] = await Promise.all([
+      adminClient.from("profiles").select("id, full_name").eq("role", "parent").order("full_name"),
+      adminClient.from("players").select("id, name, age_group").order("name"),
+      adminClient.from("parent_players").select("parent_id, player_id"),
+      adminClient.auth.admin.listUsers({ page: 1, perPage: 1000 }),
+    ]);
+
+    if (parentsError) return jsonResponse({ error: "Parent accounts could not be loaded: " + parentsError.message }, 500);
+    if (playersError) return jsonResponse({ error: "Player profiles could not be loaded: " + playersError.message }, 500);
+    if (linksError) return jsonResponse({ error: "Parent-player links could not be loaded: " + linksError.message }, 500);
+    if (authError) return jsonResponse({ error: "Parent email addresses could not be loaded: " + authError.message }, 500);
+
+    const emailById = new Map((authData.users || []).map((account) => [account.id, account.email || ""]));
+    const parents = (parentProfiles || []).map((parent) => ({ ...parent, email: emailById.get(parent.id) || "" }));
+    const parentById = new Map(parents.map((parent) => [parent.id, parent]));
+    const links = (linkRows || []).map((link) => ({
+      ...link,
+      parent_email: parentById.get(link.parent_id)?.email || "",
+    }));
+    return jsonResponse({ success: true, parents, players: playerRows || [], links });
+  }
+
+  if (payload.action === "link_parent_player") {
+    const parentId = String(payload.parentId || "");
+    const playerId = String(payload.playerId || "");
+    if (!parentId || !playerId) return jsonResponse({ error: "Select a parent account and a player." }, 400);
+
+    const [{ data: parent, error: parentError }, { data: player, error: playerError }] = await Promise.all([
+      adminClient.from("profiles").select("id, role").eq("id", parentId).maybeSingle(),
+      adminClient.from("players").select("id").eq("id", playerId).maybeSingle(),
+    ]);
+    if (parentError) return jsonResponse({ error: parentError.message }, 500);
+    if (playerError) return jsonResponse({ error: playerError.message }, 500);
+    if (parent?.role !== "parent") return jsonResponse({ error: "The selected account is not a registered parent." }, 400);
+    if (!player) return jsonResponse({ error: "The selected player profile does not exist." }, 404);
+
+    const { data: existing, error: existingError } = await adminClient
+      .from("parent_players").select("parent_id")
+      .eq("parent_id", parentId).eq("player_id", playerId).maybeSingle();
+    if (existingError) return jsonResponse({ error: existingError.message }, 500);
+    if (existing) return jsonResponse({ success: true, alreadyLinked: true });
+
+    const { error: insertError } = await adminClient.from("parent_players").insert({ parent_id: parentId, player_id: playerId });
+    if (insertError) return jsonResponse({ error: "The parent-player link could not be saved: " + insertError.message }, 500);
+    return jsonResponse({ success: true, alreadyLinked: false });
+  }
+
+  if (payload.action === "unlink_parent_player") {
+    const parentId = String(payload.parentId || "");
+    const playerId = String(payload.playerId || "");
+    if (!parentId || !playerId) return jsonResponse({ error: "A parent account and player must be selected." }, 400);
+    const { error: deleteError } = await adminClient.from("parent_players")
+      .delete().eq("parent_id", parentId).eq("player_id", playerId);
+    if (deleteError) return jsonResponse({ error: "The parent-player link could not be removed: " + deleteError.message }, 500);
+    return jsonResponse({ success: true });
   }
 
   // Return coach accounts for the admin portal.
