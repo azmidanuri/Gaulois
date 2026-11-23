@@ -2126,41 +2126,41 @@ async function parentManagementPage() {
   const parentPlayers = data?.players || [];
   const links = data?.links || [];
   const parentOptions = parents.map(parent =>
-    \`<option value="\${esc(parent.id)}">\${esc(parent.full_name || 'Unnamed parent')} — \${esc(parent.email || 'Email unavailable')}</option>\`
+    `<option value="${esc(parent.id)}">${esc(parent.full_name || 'Unnamed parent')} — ${esc(parent.email || 'Email unavailable')}</option>`
   ).join('');
   const playerOptions = parentPlayers.map(player =>
-    \`<option value="\${esc(player.id)}">\${esc(player.name)} — \${esc(player.age_group || 'Team not assigned')}</option>\`
+    `<option value="${esc(player.id)}">${esc(player.name)} — ${esc(player.age_group || 'Team not assigned')}</option>`
   ).join('');
   const parentNames = new Map(parents.map(parent => [parent.id, parent.full_name || parent.email || 'Parent']));
   const playerNames = new Map(parentPlayers.map(player => [player.id, player.name || 'Player']));
   const playerTeams = new Map(parentPlayers.map(player => [player.id, player.age_group || 'Team not assigned']));
 
-  return \`
-    \${header()}
+  return `
+    ${header()}
     <main class="container">
-      \${backButton()}
+      ${backButton()}
       <div class="page-heading">
         <h2>Admin Parent Management</h2>
         <p class="muted">Link existing parent accounts to academy player profiles. Parent self-registration remains unchanged.</p>
       </div>
       <section class="activity-card">
-        <h3>\${icon('plus', 19)} Link Parent to Player</h3>
-        \${parents.length && parentPlayers.length ? \`
+        <h3>${icon('plus', 19)} Link Parent to Player</h3>
+        ${parents.length && parentPlayers.length ? `
           <form id="parent-link-form">
             <label for="parent-account-select">Parent Account</label>
             <select id="parent-account-select" required>
               <option value="">Select a registered parent</option>
-              \${parentOptions}
+              ${parentOptions}
             </select>
             <label for="parent-player-select">Player</label>
             <select id="parent-player-select" required>
               <option value="">Select a player</option>
-              \${playerOptions}
+              ${playerOptions}
             </select>
             <p class="muted">You can link multiple children to one parent and multiple parents to one child.</p>
             <button type="submit" class="primary-btn">Link Parent to Player</button>
           </form>
-        \` : '<div class="empty-state">You need at least one registered parent account and one player profile before creating a link.</div>'}
+        ` : '<div class="empty-state">You need at least one registered parent account and one player profile before creating a link.</div>'}
       </section>
       <section class="activity-card">
         <div class="section-heading">
@@ -2169,27 +2169,27 @@ async function parentManagementPage() {
             <p class="muted">Remove a link if a parent should no longer see that player.</p>
           </div>
         </div>
-        \${links.length ? \`
+        ${links.length ? `
           <div class="staff-access-list">
-            \${links.map(link => \`
+            ${links.map(link => `
               <article class="staff-access-row">
                 <div class="staff-access-details">
-                  <strong>\${esc(parentNames.get(link.parent_id) || 'Parent account')}</strong>
-                  <small>\${esc(link.parent_email || '')}</small>
-                  <span>\${esc(playerNames.get(link.player_id) || 'Player')} · \${esc(playerTeams.get(link.player_id) || '')}</span>
+                  <strong>${esc(parentNames.get(link.parent_id) || 'Parent account')}</strong>
+                  <small>${esc(link.parent_email || '')}</small>
+                  <span>${esc(playerNames.get(link.player_id) || 'Player')} · ${esc(playerTeams.get(link.player_id) || '')}</span>
                 </div>
                 <button class="danger-btn" data-action="unlink-parent-player"
-                  data-parent-id="\${esc(link.parent_id)}"
-                  data-player-id="\${esc(link.player_id)}"
-                  data-parent-name="\${esc(parentNames.get(link.parent_id) || 'this parent')}"
-                  data-player-name="\${esc(playerNames.get(link.player_id) || 'this player')}">Unlink</button>
+                  data-parent-id="${esc(link.parent_id)}"
+                  data-player-id="${esc(link.player_id)}"
+                  data-parent-name="${esc(parentNames.get(link.parent_id) || 'this parent')}"
+                  data-player-name="${esc(playerNames.get(link.player_id) || 'this player')}">Unlink</button>
               </article>
-            \`).join('')}
+            `).join('')}
           </div>
-        \` : '<div class="empty-state">No parent-player links have been created yet.</div>'}
+        ` : '<div class="empty-state">No parent-player links have been created yet.</div>'}
       </section>
     </main>
-  \`;
+  `;
 }
 
 async function saveParentPlayerLink(event) {
@@ -2210,7 +2210,7 @@ async function saveParentPlayerLink(event) {
 
 async function unlinkParentPlayer(parentId, playerId, parentName, playerName) {
   if (!isAdmin()) throw new Error('Only administrators can remove parent-player links.');
-  if (!confirm(\`Unlink \${parentName} from \${playerName}? The parent will no longer see this player's portal information.\`)) return;
+  if (!confirm(`Unlink ${parentName} from ${playerName}? The parent will no longer see this player's portal information.`)) return;
 
   const { data, error } = await supabase.functions.invoke('create-staff-user', {
     body: { action: 'unlink_parent_player', parentId, playerId }
