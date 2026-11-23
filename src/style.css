@@ -1245,3 +1245,79 @@ details[open] .collapse-arrow .portal-icon {
   letter-spacing: 0.5px;
   overflow-wrap: anywhere;
 }
+
+
+/* Admin coach access management */
+.staff-access-card {
+  margin-top: 22px;
+}
+
+.staff-access-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.staff-access-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 15px;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 12px;
+  background: var(--card, #fff);
+}
+
+.staff-access-details {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.staff-access-details strong {
+  overflow-wrap: anywhere;
+}
+
+.staff-access-details small {
+  color: var(--muted, #64748b);
+  overflow-wrap: anywhere;
+}
+
+.staff-access-status {
+  width: fit-content;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .05em;
+}
+
+.staff-access-status.is-active {
+  color: #15803d;
+}
+
+.staff-access-status.is-inactive {
+  color: #b91c1c;
+}
+
+.danger-btn {
+  border: 0;
+  border-radius: 9px;
+  padding: 10px 13px;
+  background: #b91c1c;
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+@media (max-width: 560px) {
+  .staff-access-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .staff-access-row button {
+    width: 100%;
+  }
+}
