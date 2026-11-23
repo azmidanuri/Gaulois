@@ -316,9 +316,44 @@ async function loadProfile() {
     .from('profiles')
     .select('*')
     .eq('id', user.id)
-    .single()
+    .maybeSingle()
 
   if (error) throw error
+
+  // Parent accounts created while email verification is enabled may not
+  // have a profiles row yet. Recover that row on their first verified login.
+  if (!data) {
+    const metadata = user.user_metadata || {}
+    const isParentAccount = metadata.role === 'parent' || loginType === 'parent'
+
+    if (!isParentAccount) {
+      throw new Error('Your portal profile could not be found. Please contact an academy administrator.')
+    }
+
+    const emailName = (user.email || '').split('@')[0]
+    const fullName = metadata.full_name || metadata.name || emailName || 'Parent'
+
+    const { error: createError } = await supabase
+      .from('profiles')
+      .upsert({
+        id: user.id,
+        full_name: fullName,
+        role: 'parent'
+      }, { onConflict: 'id' })
+
+    if (createError) throw createError
+
+    const { data: createdProfile, error: reloadError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single()
+
+    if (reloadError) throw reloadError
+    profile = createdProfile
+    return
+  }
+
   profile = data
 }
 
@@ -412,9 +447,20 @@ async function changeFirstLoginPassword(newPassword) {
 }
 
 async function createParentAccount(name, email, password) {
-  const { data, error } = await supabase.auth.signUp({ email, password })
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: {
+        full_name: name,
+        role: 'parent'
+      }
+    }
+  })
   if (error) throw error
   if (!data.user) throw new Error('Account could not be created.')
+
+  user = data.user
 
   if (!data.session) {
     showMessage('Account created. Please verify your email, then log in.')
@@ -423,14 +469,7 @@ async function createParentAccount(name, email, password) {
     return
   }
 
-  user = data.user
-
-  const { error: profileError } = await supabase
-    .from('profiles')
-    .upsert({ id: user.id, full_name: name, role: 'parent' })
-
-  if (profileError) throw profileError
-
+  // If email confirmation is disabled, create/load the profile immediately.
   await loadProfile()
   await refreshPortalData()
   currentPage = 'home'
