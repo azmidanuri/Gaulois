@@ -27,6 +27,8 @@ let selectedPlayer = null
 let selectedManagementTeam = null
 let isSigningUp = false
 let fixtures = []
+let fixtureUpcomingSort = 'date-asc'
+let fixtureResultsSort = 'date-desc'
 let editingFixtureId = null
 let announcements = []
 let squadSelections = []
@@ -1231,13 +1233,15 @@ function squadManagementPage() {
         <h3>${icon('users', 19)} Transfer Player</h3>
         <form id="transfer-player-form" class="portal-form-grid">
           <div class="form-span">
-            <label>Select Player</label>
-            <select id="transfer-player" required>
-              <option value="">Choose a player</option>
+            <label for="transfer-player-search">Player Name</label>
+            <input id="transfer-player-search" type="search" list="transfer-player-options"
+              placeholder="Search player name..." autocomplete="off" required>
+            <datalist id="transfer-player-options">
               ${players.slice().sort((a, b) => a.name.localeCompare(b.name)).map(p =>
-                `<option value="${p.id}">${esc(p.name)} — ${esc(p.age_group || 'No team')}</option>`
+                `<option value="${esc(p.name)} — ${esc(p.age_group || 'No team')}"></option>`
               ).join('')}
-            </select>
+            </datalist>
+            <input id="transfer-player" type="hidden" value="">
           </div>
           <div class="form-span">
             <label>Move To Team</label>
@@ -1300,7 +1304,11 @@ async function transferPlayer(event) {
   event.preventDefault()
   if (!canManage()) return
 
-  const playerId = document.querySelector('#transfer-player').value
+  const playerSearch = document.querySelector('#transfer-player-search')?.value.trim() || ''
+  const selectedPlayer = players.find(p =>
+    (p.name + ' — ' + (p.age_group || 'No team')).toLowerCase() === playerSearch.toLowerCase()
+  )
+  const playerId = selectedPlayer?.id || ''
   const team = document.querySelector('#transfer-team').value
   const player = players.find(p => String(p.id) === String(playerId))
 
@@ -1696,8 +1704,16 @@ function fixtureCard(f) {
 async function fixturesPage() {
   await loadFixtures()
 
-  const upcoming = fixtures.filter(f => !dateIsPast(f.fixture_date))
-  const past = fixtures.filter(f => dateIsPast(f.fixture_date))
+  const upcoming = fixtures.filter(f => !dateIsPast(f.fixture_date)).slice().sort((a, b) =>
+    fixtureUpcomingSort === 'date-desc'
+      ? String(b.fixture_date || '').localeCompare(String(a.fixture_date || ''))
+      : String(a.fixture_date || '').localeCompare(String(b.fixture_date || ''))
+  )
+  const past = fixtures.filter(f => dateIsPast(f.fixture_date)).slice().sort((a, b) =>
+    fixtureResultsSort === 'date-asc'
+      ? String(a.fixture_date || '').localeCompare(String(b.fixture_date || ''))
+      : String(b.fixture_date || '').localeCompare(String(a.fixture_date || ''))
+  )
   const editingFixture = editingFixtureId
     ? fixtures.find(f => String(f.id) === String(editingFixtureId))
     : null
@@ -1716,6 +1732,12 @@ async function fixturesPage() {
       <section class="activity-section">
         <div class="section-heading">
           <h3>Upcoming Fixtures</h3>
+          <label class="sort-control">Sort by
+            <select data-fixture-sort="upcoming" aria-label="Sort upcoming fixtures">
+              <option value="date-asc" ${fixtureUpcomingSort === 'date-asc' ? 'selected' : ''}>Date: earliest first</option>
+              <option value="date-desc" ${fixtureUpcomingSort === 'date-desc' ? 'selected' : ''}>Date: latest first</option>
+            </select>
+          </label>
           <span class="muted">${upcoming.length} matches</span>
         </div>
         ${upcoming.length ? upcoming.map(fixtureCard).join('') : '<div class="empty-state">No upcoming fixtures published.</div>'}
@@ -1724,9 +1746,15 @@ async function fixturesPage() {
       <section class="activity-section">
         <div class="section-heading">
           <h3>Past Results</h3>
+          <label class="sort-control">Sort by
+            <select data-fixture-sort="results" aria-label="Sort past results">
+              <option value="date-desc" ${fixtureResultsSort === 'date-desc' ? 'selected' : ''}>Date: newest first</option>
+              <option value="date-asc" ${fixtureResultsSort === 'date-asc' ? 'selected' : ''}>Date: oldest first</option>
+            </select>
+          </label>
           <span class="muted">${past.length} matches</span>
         </div>
-        ${past.length ? past.slice().reverse().map(fixtureCard).join('') : '<div class="empty-state">No past results available.</div>'}
+        ${past.length ? past.map(fixtureCard).join('') : '<div class="empty-state">No past results available.</div>'}
       </section>
     </main>
   `
@@ -2581,6 +2609,15 @@ root.addEventListener('click', async event => {
     console.error(error)
     showMessage(error.message || 'An unexpected error occurred.')
   }
+})
+
+// SORT CONTROLS
+root.addEventListener('change', event => {
+  const sort = event.target.closest('[data-fixture-sort]')
+  if (!sort) return
+  if (sort.dataset.fixtureSort === 'upcoming') fixtureUpcomingSort = sort.value
+  if (sort.dataset.fixtureSort === 'results') fixtureResultsSort = sort.value
+  fixturesPage()
 })
 
 // FORM SUBMISSIONS
