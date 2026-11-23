@@ -17,6 +17,7 @@ export function initVideoPortal({
   let editingVideo = null
   let activeFilter = 'all'
   let searchText = ''
+  let sortOrder = 'date-desc'
   let isLoading = false
 
   function formatVideoDate(value) {
@@ -142,7 +143,12 @@ export function initVideoPortal({
 
   function pageMarkup() {
     const profile = getProfile()
-    const list = visibleVideos()
+    const list = visibleVideos().slice().sort((a, b) => {
+      if (sortOrder === 'date-asc') return String(a.recorded_on || '').localeCompare(String(b.recorded_on || ''))
+      if (sortOrder === 'title-asc') return String(a.title || '').localeCompare(String(b.title || ''), undefined, { sensitivity: 'base' })
+      if (sortOrder === 'team-asc') return String(a.team_name || '').localeCompare(String(b.team_name || ''), undefined, { numeric: true, sensitivity: 'base' })
+      return String(b.recorded_on || '').localeCompare(String(a.recorded_on || ''))
+    })
     const types = [
       ['all', 'All'],
       ['match', 'Matches'],
@@ -172,6 +178,14 @@ export function initVideoPortal({
             </div>
             <input class="video-search" type="search" id="video-search" placeholder="Search videos or teams..."
               value="${esc(searchText)}" aria-label="Search videos">
+            <label class="video-sort-control">Sort by
+              <select id="video-sort" aria-label="Sort videos">
+                <option value="date-desc" ${sortOrder === 'date-desc' ? 'selected' : ''}>Newest first</option>
+                <option value="date-asc" ${sortOrder === 'date-asc' ? 'selected' : ''}>Oldest first</option>
+                <option value="title-asc" ${sortOrder === 'title-asc' ? 'selected' : ''}>Title A–Z</option>
+                <option value="team-asc" ${sortOrder === 'team-asc' ? 'selected' : ''}>Team A–Z</option>
+              </select>
+            </label>
           </div>
           ${isLoading ? '<div class="empty-state">Loading videos...</div>' : list.length ? `
             <div class="video-grid">${list.map(renderVideoCard).join('')}</div>
@@ -303,6 +317,12 @@ export function initVideoPortal({
     } catch (error) {
       showMessage(error.message || 'The video could not be saved.')
     }
+  })
+
+  root.addEventListener('change', event => {
+    if (event.target.id !== 'video-sort') return
+    sortOrder = event.target.value
+    root.innerHTML = pageMarkup()
   })
 
   root.addEventListener('input', event => {
