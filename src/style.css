@@ -1220,3 +1220,28 @@ details[open] .collapse-arrow .portal-icon {
 .fixture-details .portal-icon {
   margin-right: 5px;
 }
+
+
+/* STAFF ACCOUNT AND FIRST-LOGIN PASSWORD SCREENS */
+.staff-account-card {
+  max-width: 620px;
+  margin: 0 auto;
+}
+
+.staff-account-note {
+  line-height: 1.6;
+  margin: 12px 0 4px;
+}
+
+.temporary-password-value {
+  padding: 14px;
+  border: 1px dashed #9bb7d6;
+  border-radius: 9px;
+  background: #f3f7fc;
+  color: #102b50;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  overflow-wrap: anywhere;
+}
