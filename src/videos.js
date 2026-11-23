@@ -43,7 +43,9 @@ export function initVideoPortal({
     const query = searchText.trim().toLowerCase()
     return videos.filter(video => {
       const matchesType = activeFilter === 'all' || video.video_type === activeFilter
-      const haystack = [video.title, video.team_name, video.description, typeLabel(video.video_type)]
+      // Opponent names can be entered in the video title or description by staff.
+      // Include both fields in the search so parents can find footage by opponent.
+      const haystack = [video.title, video.team_name, video.description, video.opponent, typeLabel(video.video_type)]
         .filter(Boolean).join(' ').toLowerCase()
       return matchesType && (!query || haystack.includes(query))
     })
@@ -176,8 +178,8 @@ export function initVideoPortal({
                   data-action="video-filter" data-filter="${key}">${label}</button>
               `).join('')}
             </div>
-            <input class="video-search" type="search" id="video-search" placeholder="Search videos or teams..."
-              value="${esc(searchText)}" aria-label="Search videos">
+            <input class="video-search" type="search" id="video-search" placeholder="Search by opponent, team or video title..."
+              value="${esc(searchText)}" aria-label="Search videos by opponent, team or title">
             <label class="video-sort-control">Sort by
               <select id="video-sort" aria-label="Sort videos">
                 <option value="date-desc" ${sortOrder === 'date-desc' ? 'selected' : ''}>Newest first</option>
