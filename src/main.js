@@ -330,17 +330,9 @@ async function loadProfile() {
       throw new Error('Your portal profile could not be found. Please contact an academy administrator.')
     }
 
-    const emailName = (user.email || '').split('@')[0]
-    const fullName = metadata.full_name || metadata.name || emailName || 'Parent'
-
-    const { error: createError } = await supabase
-      .from('profiles')
-      .upsert({
-        id: user.id,
-        full_name: fullName,
-        role: 'parent'
-      }, { onConflict: 'id' })
-
+    // Use a narrowly scoped SECURITY DEFINER RPC so RLS remains enabled
+    // and the authenticated user can create only their own parent profile.
+    const { error: createError } = await supabase.rpc('ensure_my_parent_profile')
     if (createError) throw createError
 
     const { data: createdProfile, error: reloadError } = await supabase
