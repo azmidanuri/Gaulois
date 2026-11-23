@@ -113,6 +113,10 @@ function canManage() {
   return Boolean(profile && profile.role !== 'parent')
 }
 
+function isAdmin() {
+  return profile?.role === 'admin'
+}
+
 function visiblePlayers() {
   return profile?.role === 'parent' ? linkedPlayers : players
 }
@@ -203,6 +207,34 @@ async function loadTeams() {
 }
 
 // AUTHENTICATION
+
+function passwordChangePage() {
+  root.innerHTML = `
+    <main class="login-page">
+      <section class="login-card">
+        <div class="login-brand">
+          <img src="/gaulois-logo.png" class="login-logo" alt="Gaulois Aerion Academy">
+          <h1>Gaulois Aerion Academy</h1>
+          <p>SECURE ACCOUNT SETUP</p>
+        </div>
+        <div class="login-form-content">
+          <span class="login-eyebrow">FIRST LOGIN</span>
+          <h2>Create Your Password</h2>
+          <p class="login-description">Your temporary password must be replaced before you can access the academy portal.</p>
+          <form id="change-password-form">
+            <label>New Password</label>
+            <input id="new-password" type="password" autocomplete="new-password" minlength="8" placeholder="At least 8 characters" required>
+            <label>Confirm New Password</label>
+            <input id="confirm-password" type="password" autocomplete="new-password" minlength="8" placeholder="Re-enter your new password" required>
+            <button type="submit" class="primary-btn">Save New Password</button>
+          </form>
+          <button class="text-btn" data-action="logout">Logout</button>
+        </div>
+        <div class="login-footer">GAULOIS AERION ACADEMY</div>
+      </section>
+    </main>
+  `
+}
 
 function loginPage() {
   root.innerHTML = `
@@ -341,9 +373,35 @@ async function login(email, password) {
     throw new Error('Please use Staff Login for this account.')
   }
 
+  if (profile.must_change_password) {
+    currentPage = 'password-change'
+    render()
+    return
+  }
+
   await refreshPortalData()
   currentPage = 'home'
   render()
+}
+
+async function changeFirstLoginPassword(newPassword) {
+  if (!user || !profile?.must_change_password) return
+
+  const { error: passwordError } = await supabase.auth.updateUser({ password: newPassword })
+  if (passwordError) throw passwordError
+
+  const { error: profileError } = await supabase
+    .from('profiles')
+    .update({ must_change_password: false })
+    .eq('id', user.id)
+
+  if (profileError) throw profileError
+
+  await loadProfile()
+  await refreshPortalData()
+  currentPage = 'home'
+  render()
+  showMessage('Your password has been updated. Welcome to the Gaulois Aerion Portal.')
 }
 
 async function createParentAccount(name, email, password) {
@@ -456,6 +514,7 @@ function homePage() {
           ${menuCard('Team Management', 'shield', 'team-management')}
         ` : ''}
 
+        ${isAdmin() ? menuCard('Staff Account Management', 'shield', 'staff-accounts') : ''}
         ${menuCard('Videos', 'video', 'videos')}
       </section>
 
@@ -2041,6 +2100,79 @@ async function saveSquad(fixtureId) {
   await squadsPage()
 }
 
+// STAFF ACCOUNT MANAGEMENT
+
+function staffAccountsPage() {
+  if (!isAdmin()) {
+    currentPage = 'home'
+    return homePage()
+  }
+
+  return `
+    ${header()}
+    <main class="container">
+      ${backButton()}
+      <div class="page-heading">
+        <h2>Staff Account Management</h2>
+        <p class="muted">Create administrator and coach accounts with a one-time temporary password.</p>
+      </div>
+      <section class="activity-card staff-account-card">
+        <h3>${icon('plus', 19)} Create Staff Account</h3>
+        <form id="create-staff-account-form">
+          <label>Full Name</label>
+          <input id="staff-full-name" type="text" maxlength="100" placeholder="Enter staff member's full name" required>
+          <label>Email Address</label>
+          <input id="staff-email" type="email" maxlength="254" placeholder="name@example.com" required>
+          <label>Account Role</label>
+          <select id="staff-role" required>
+            <option value="coach">Coach</option>
+            <option value="admin">Administrator</option>
+          </select>
+          <p class="muted staff-account-note">A unique temporary password will be generated. Share it with the staff member securely. They must change it when they first log in.</p>
+          <button type="submit" class="primary-btn">Create Staff Account</button>
+        </form>
+      </section>
+    </main>
+  `
+}
+
+async function createStaffAccount(event) {
+  event.preventDefault()
+  if (!isAdmin()) throw new Error('Only administrators can create staff accounts.')
+
+  const fullName = document.querySelector('#staff-full-name').value.trim()
+  const email = document.querySelector('#staff-email').value.trim().toLowerCase()
+  const role = document.querySelector('#staff-role').value
+  if (!fullName || !email || !['admin', 'coach'].includes(role)) {
+    throw new Error('Please complete all staff account details.')
+  }
+
+  const { data, error } = await supabase.functions.invoke('create-staff-user', {
+    body: { fullName, email, role }
+  })
+  if (error) throw new Error(error.message || 'The staff account could not be created.')
+  if (data?.error) throw new Error(data.error)
+  if (!data?.temporaryPassword) throw new Error('The account was created but no temporary password was returned. Check the Edge Function logs.')
+
+  root.innerHTML = `
+    ${header()}
+    <main class="container">
+      ${backButton()}
+      <div class="page-heading"><h2>Staff Account Created</h2><p class="muted">Share these login details with the new staff member through a secure channel.</p></div>
+      <section class="activity-card">
+        <p><strong>Name:</strong> ${esc(fullName)}</p>
+        <p><strong>Email:</strong> ${esc(email)}</p>
+        <p><strong>Role:</strong> ${role === 'admin' ? 'Administrator' : 'Coach'}</p>
+        <label>One-time temporary password</label>
+        <div class="temporary-password-value">${esc(data.temporaryPassword)}</div>
+        <button class="secondary-btn" data-action="copy-temp-password" data-password="${esc(data.temporaryPassword)}">Copy Temporary Password</button>
+        <p class="muted staff-account-note">This password is shown only once. The staff member must create a new password on first login.</p>
+        <button class="primary-btn" data-action="page" data-page="staff-accounts">Create Another Account</button>
+      </section>
+    </main>
+  `
+}
+
 // PLACEHOLDERS
 
 function placeholderPage(title, iconName, message) {
@@ -2090,7 +2222,21 @@ async function render() {
   if (!user) return loginPage()
 
   try {
-    if (currentPage === 'home') {
+    if (profile?.must_change_password) {
+      currentPage = 'password-change'
+      return passwordChangePage()
+    }
+
+    if (currentPage === 'password-change') {
+      return passwordChangePage()
+    } else if (currentPage === 'staff-accounts') {
+      if (!isAdmin()) {
+        currentPage = 'home'
+        root.innerHTML = homePage()
+      } else {
+        root.innerHTML = staffAccountsPage()
+      }
+    } else if (currentPage === 'home') {
       root.innerHTML = homePage()
     } else if (currentPage === 'roster') {
       root.innerHTML = rosterPage()
@@ -2210,6 +2356,9 @@ root.addEventListener('click', async event => {
       await deleteAnnouncement(target.dataset.id, target.dataset.title)
     } else if (action === 'save-squad') {
       await saveSquad(target.dataset.fixture)
+    } else if (action === 'copy-temp-password') {
+      await navigator.clipboard.writeText(target.dataset.password || '')
+      showMessage('Temporary password copied.')
     }
   } catch (error) {
     console.error(error)
@@ -2222,7 +2371,24 @@ root.addEventListener('click', async event => {
 root.addEventListener('submit', async event => {
   const form = event.target
 
-  if (form.id === 'login-form') {
+  if (form.id === 'change-password-form') {
+    event.preventDefault()
+    const newPassword = document.querySelector('#new-password').value
+    const confirmPassword = document.querySelector('#confirm-password').value
+    if (newPassword.length < 8) return showMessage('Please use a password with at least 8 characters.')
+    if (newPassword !== confirmPassword) return showMessage('The passwords do not match.')
+    try {
+      await changeFirstLoginPassword(newPassword)
+    } catch (error) {
+      showMessage(error.message || 'Your password could not be updated.')
+    }
+  } else if (form.id === 'create-staff-account-form') {
+    try {
+      await createStaffAccount(event)
+    } catch (error) {
+      showMessage(error.message || 'The staff account could not be created.')
+    }
+  } else if (form.id === 'login-form') {
     event.preventDefault()
     const email = document.querySelector('#email').value.trim()
     const password = document.querySelector('#password').value
@@ -2278,8 +2444,12 @@ async function startApp() {
 
     try {
       await loadProfile()
-      await refreshPortalData()
-      currentPage = 'home'
+      if (profile.must_change_password) {
+        currentPage = 'password-change'
+      } else {
+        await refreshPortalData()
+        currentPage = 'home'
+      }
     } catch (err) {
       console.error(err)
       await supabase.auth.signOut()
