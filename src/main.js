@@ -29,6 +29,9 @@ let isSigningUp = false
 let fixtures = []
 let fixtureUpcomingSort = 'date-asc'
 let fixtureResultsSort = 'date-desc'
+let fixtureSearch = ''
+let fixtureResultsPage = 1
+const FIXTURE_RESULTS_PER_PAGE = 5
 let editingFixtureId = null
 let announcements = []
 let squadSelections = []
@@ -1657,6 +1660,15 @@ function fixtureForm(fixture = null) {
     </section>
   `
 }
+function fixtureMatchesSearch(f, query) {
+  if (!query) return true
+  const searchable = [
+    f.opponent, f.age_group, f.competition, f.venue, f.home_away,
+    f.fixture_date, formatDate(f.fixture_date), f.home_score, f.away_score
+  ].filter(value => value !== null && value !== undefined).join(' ').toLowerCase()
+  return searchable.includes(query.toLowerCase())
+}
+
 function fixtureCard(f) {
   const hasScore = f.home_score !== null && f.home_score !== undefined &&
     f.away_score !== null && f.away_score !== undefined
@@ -1704,15 +1716,22 @@ function fixtureCard(f) {
 async function fixturesPage() {
   await loadFixtures()
 
-  const upcoming = fixtures.filter(f => !dateIsPast(f.fixture_date)).slice().sort((a, b) =>
+  const matchingFixtures = fixtures.filter(f => fixtureMatchesSearch(f, fixtureSearch.trim()))
+  const upcoming = matchingFixtures.filter(f => !dateIsPast(f.fixture_date)).slice().sort((a, b) =>
     fixtureUpcomingSort === 'date-desc'
       ? String(b.fixture_date || '').localeCompare(String(a.fixture_date || ''))
       : String(a.fixture_date || '').localeCompare(String(b.fixture_date || ''))
   )
-  const past = fixtures.filter(f => dateIsPast(f.fixture_date)).slice().sort((a, b) =>
+  const past = matchingFixtures.filter(f => dateIsPast(f.fixture_date)).slice().sort((a, b) =>
     fixtureResultsSort === 'date-asc'
       ? String(a.fixture_date || '').localeCompare(String(b.fixture_date || ''))
       : String(b.fixture_date || '').localeCompare(String(a.fixture_date || ''))
+  )
+  const pastPageCount = Math.max(1, Math.ceil(past.length / FIXTURE_RESULTS_PER_PAGE))
+  fixtureResultsPage = Math.min(fixtureResultsPage, pastPageCount)
+  const pastPageItems = past.slice(
+    (fixtureResultsPage - 1) * FIXTURE_RESULTS_PER_PAGE,
+    fixtureResultsPage * FIXTURE_RESULTS_PER_PAGE
   )
   const editingFixture = editingFixtureId
     ? fixtures.find(f => String(f.id) === String(editingFixtureId))
@@ -1728,6 +1747,17 @@ async function fixturesPage() {
       </div>
 
       ${canManage() ? fixtureForm(editingFixture) : ''}
+
+      <div class="fixture-search-wrap">
+        <label for="fixture-search">Search fixtures</label>
+        <div class="fixture-search-field">
+          ${icon('search', 18)}
+          <input id="fixture-search" type="search" value="${esc(fixtureSearch)}"
+            placeholder="Search opponent, team, competition or venue..." autocomplete="off">
+          ${fixtureSearch ? '<button type="button" class="fixture-search-clear" data-action="clear-fixture-search" aria-label="Clear fixture search">Clear</button>' : ''}
+        </div>
+        ${fixtureSearch ? `<small class="muted">${matchingFixtures.length} matching ${matchingFixtures.length === 1 ? 'fixture' : 'fixtures'}</small>` : ''}
+      </div>
 
       <section class="activity-section">
         <div class="section-heading">
@@ -1754,7 +1784,14 @@ async function fixturesPage() {
           </label>
           <span class="muted">${past.length} matches</span>
         </div>
-        ${past.length ? past.map(fixtureCard).join('') : '<div class="empty-state">No past results available.</div>'}
+        ${pastPageItems.length ? pastPageItems.map(fixtureCard).join('') : '<div class="empty-state">${fixtureSearch ? 'No past fixtures match your search.' : 'No past results available.'}</div>'}
+        ${past.length > FIXTURE_RESULTS_PER_PAGE ? `
+          <nav class="fixture-pagination" aria-label="Past results pages">
+            <button type="button" class="secondary-btn" data-action="past-fixtures-prev" ${fixtureResultsPage <= 1 ? 'disabled' : ''}>${icon('back', 15)} Previous</button>
+            <span>Page <strong>${fixtureResultsPage}</strong> of <strong>${pastPageCount}</strong></span>
+            <button type="button" class="secondary-btn" data-action="past-fixtures-next" ${fixtureResultsPage >= pastPageCount ? 'disabled' : ''}>Next ${icon('arrow', 15)}</button>
+          </nav>
+        ` : ''}
       </section>
     </main>
   `
@@ -2591,6 +2628,16 @@ root.addEventListener('click', async event => {
       await fixturesPage()
     } else if (action === 'delete-fixture') {
       await deleteFixture(target.dataset.id, target.dataset.opponent)
+    } else if (action === 'past-fixtures-prev') {
+      fixtureResultsPage = Math.max(1, fixtureResultsPage - 1)
+      await fixturesPage()
+    } else if (action === 'past-fixtures-next') {
+      fixtureResultsPage += 1
+      await fixturesPage()
+    } else if (action === 'clear-fixture-search') {
+      fixtureSearch = ''
+      fixtureResultsPage = 1
+      await fixturesPage()
     } else if (action === 'delete-announcement') {
       await deleteAnnouncement(target.dataset.id, target.dataset.title)
     } else if (action === 'save-squad') {
@@ -2608,6 +2655,20 @@ root.addEventListener('click', async event => {
   } catch (error) {
     console.error(error)
     showMessage(error.message || 'An unexpected error occurred.')
+  }
+})
+
+// FIXTURE SEARCH
+root.addEventListener('input', async event => {
+  if (event.target.id !== 'fixture-search') return
+  fixtureSearch = event.target.value
+  fixtureResultsPage = 1
+  const cursor = event.target.selectionStart
+  await fixturesPage()
+  const replacement = document.querySelector('#fixture-search')
+  if (replacement) {
+    replacement.focus()
+    replacement.setSelectionRange(cursor, cursor)
   }
 })
 
