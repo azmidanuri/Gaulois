@@ -919,3 +919,89 @@ textarea:focus {
   .tournament-final-squad { grid-template-columns: 1fr; }
   .tournament-confirm-actions { flex-direction: column; }
 }
+
+
+/* Fixture search and past-results pagination */
+.fixture-search-wrap {
+  margin: 0 0 22px;
+  padding: 15px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #fff;
+}
+.fixture-search-wrap > label {
+  display: block;
+  margin: 0 0 8px;
+  color: #34445c;
+  font-size: 12px;
+  font-weight: 800;
+}
+.fixture-search-field {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  padding: 0 11px;
+  border: 1px solid #d8e0eb;
+  border-radius: 9px;
+  background: #fff;
+  color: #718096;
+}
+.fixture-search-field input {
+  flex: 1;
+  min-width: 0;
+  padding: 11px 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #172033;
+  font: inherit;
+  font-size: 13px;
+}
+.fixture-search-clear {
+  border: 0;
+  background: transparent;
+  color: #526176;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.fixture-search-wrap > small {
+  display: block;
+  margin-top: 8px;
+}
+.fixture-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid #e8edf3;
+}
+.fixture-pagination span {
+  color: #64748b;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.fixture-pagination span strong { color: #172b49; }
+.fixture-pagination button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 36px;
+  padding: 8px 11px;
+  font-size: 11px;
+}
+.fixture-pagination button:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+@media (max-width: 380px) {
+  .fixture-search-wrap { padding: 12px; }
+  .fixture-pagination { gap: 6px; }
+  .fixture-pagination button { padding: 7px 8px; }
+  .fixture-pagination span { font-size: 10px; }
+}
