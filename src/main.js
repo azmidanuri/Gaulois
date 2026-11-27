@@ -1713,8 +1713,8 @@ function fixtureCard(f) {
   `
 }
 
-async function fixturesPage() {
-  await loadFixtures()
+async function fixturesPage(reload = true) {
+  if (reload) await loadFixtures()
 
   const matchingFixtures = fixtures.filter(f => fixtureMatchesSearch(f, fixtureSearch.trim()))
   const upcoming = matchingFixtures.filter(f => !dateIsPast(f.fixture_date)).slice().sort((a, b) =>
@@ -1770,7 +1770,7 @@ async function fixturesPage() {
           </label>
           <span class="muted">${upcoming.length} matches</span>
         </div>
-        ${upcoming.length ? upcoming.map(fixtureCard).join('') : '<div class="empty-state">No upcoming fixtures published.</div>'}
+        ${upcoming.length ? upcoming.map(fixtureCard).join('') : `<div class="empty-state">${fixtureSearch ? 'No upcoming fixtures match your search.' : 'No upcoming fixtures published.'}</div>`}
       </section>
 
       <section class="activity-section">
@@ -1784,7 +1784,7 @@ async function fixturesPage() {
           </label>
           <span class="muted">${past.length} matches</span>
         </div>
-        ${pastPageItems.length ? pastPageItems.map(fixtureCard).join('') : '<div class="empty-state">${fixtureSearch ? 'No past fixtures match your search.' : 'No past results available.'}</div>'}
+        ${pastPageItems.length ? pastPageItems.map(fixtureCard).join('') : `<div class="empty-state">${fixtureSearch ? 'No past fixtures match your search.' : 'No past results available.'}</div>`}
         ${past.length > FIXTURE_RESULTS_PER_PAGE ? `
           <nav class="fixture-pagination" aria-label="Past results pages">
             <button type="button" class="secondary-btn" data-action="past-fixtures-prev" ${fixtureResultsPage <= 1 ? 'disabled' : ''}>${icon('back', 15)} Previous</button>
@@ -2630,14 +2630,14 @@ root.addEventListener('click', async event => {
       await deleteFixture(target.dataset.id, target.dataset.opponent)
     } else if (action === 'past-fixtures-prev') {
       fixtureResultsPage = Math.max(1, fixtureResultsPage - 1)
-      await fixturesPage()
+      await fixturesPage(false)
     } else if (action === 'past-fixtures-next') {
       fixtureResultsPage += 1
-      await fixturesPage()
+      await fixturesPage(false)
     } else if (action === 'clear-fixture-search') {
       fixtureSearch = ''
       fixtureResultsPage = 1
-      await fixturesPage()
+      await fixturesPage(false)
     } else if (action === 'delete-announcement') {
       await deleteAnnouncement(target.dataset.id, target.dataset.title)
     } else if (action === 'save-squad') {
@@ -2664,7 +2664,7 @@ root.addEventListener('input', async event => {
   fixtureSearch = event.target.value
   fixtureResultsPage = 1
   const cursor = event.target.selectionStart
-  await fixturesPage()
+  await fixturesPage(false)
   const replacement = document.querySelector('#fixture-search')
   if (replacement) {
     replacement.focus()
@@ -2678,7 +2678,7 @@ root.addEventListener('change', event => {
   if (!sort) return
   if (sort.dataset.fixtureSort === 'upcoming') fixtureUpcomingSort = sort.value
   if (sort.dataset.fixtureSort === 'results') fixtureResultsSort = sort.value
-  fixturesPage()
+  fixturesPage(false)
 })
 
 // FORM SUBMISSIONS
